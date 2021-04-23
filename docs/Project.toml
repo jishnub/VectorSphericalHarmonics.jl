@@ -1,0 +1,10 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+SphericalHarmonicModes = "0e9554e2-b38b-11e9-16d7-9d9abfec665a"
+SphericalHarmonics = "c489a379-e885-57ff-9236-bd896d33c250"
+VectorSphericalHarmonics = "4b2bd704-7189-418b-a6ce-5ef15384b069"
+
+[Compat]
+Documenter = "0.26"
+SphericalHarmonicModes = "0.4"
+SphericalHarmonics = "0.1.10"
