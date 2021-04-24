@@ -75,16 +75,16 @@ function helicity_cartesian_conversion(θ, ϕ)
     invsqrt2 = 1/√2
 
     SMatrix{3,3}((
-        (cosθ * cosϕ - im * sinϕ) * invsqrt2,
-        (cosθ * sinϕ + im * cosϕ) * invsqrt2,
+        (cosθ * cosϕ + im * sinϕ) * invsqrt2,
+        (cosθ * sinϕ - im * cosϕ) * invsqrt2,
         -sinθ * invsqrt2,
 
         sinθ * cosϕ,
         sinθ * sinϕ,
         cosθ,
 
-        -(cosθ * cosϕ + im * sinϕ) * invsqrt2,
-        -(cosθ * sinϕ - im * cosϕ) * invsqrt2,
+        -(cosθ * cosϕ - im * sinϕ) * invsqrt2,
+        -(cosθ * sinϕ + im * cosϕ) * invsqrt2,
         sinθ * invsqrt2,
         ))
 end
@@ -130,9 +130,21 @@ spherical_cartesian_conversion(θ, ϕ) = SphericalCartesianConversionMatrix
 cartesian_spherical_conversion(θ, ϕ) = spherical_cartesian_conversion(θ, ϕ)'
 
 function cartesian_polar_conversion(θ, ϕ)
-    M = basisconversionmatrix(SphericalCovariant(), Polar(), θ, ϕ)
-    N = basisconversionmatrix(SphericalCovariant(), Cartesian(), θ, ϕ)
-    M * N'
+    sinθ, cosθ = sincos(θ)
+    sinϕ, cosϕ = sincos(ϕ)
+    SMatrix{3,3}((
+        sinθ*cosϕ,
+        cosθ*cosϕ,
+        -sinϕ,
+
+        sinθ*sinϕ,
+        cosθ*sinϕ,
+        cosϕ,
+
+        cosθ,
+        -sinθ,
+        0,
+        ))
 end
 polar_cartesian_conversion(θ, ϕ) = cartesian_polar_conversion(θ, ϕ)'
 

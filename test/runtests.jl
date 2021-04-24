@@ -33,18 +33,20 @@ const Ylm = VectorSphericalHarmonics._getY(S);
 
 @testset "Basis" begin
     for θ in LinRange(0, pi, 10), ϕ in LinRange(0, 2pi, 10)
-        for B2 in [HelicityCovariant(), Polar(), SphericalCovariant(), HelicityCovariant()]
+        for B2 in [HelicityCovariant(), Polar(), SphericalCovariant(), Cartesian()]
             for B1 in [HelicityCovariant(), SphericalCovariant()]
                 M = basisconversionmatrix(B1, B2, θ, ϕ)
+                Minv = basisconversionmatrix(B2, B1, θ, ϕ)
                 # transformations must be unitary
                 @test M' * M ≈ I
+                @test Minv ≈ M'
                 @test abs(det(M)) ≈ 1
             end
         end
     end
     @testset "multiple transformations" begin
         for θ in LinRange(0, pi, 10), ϕ in LinRange(0, 2pi, 10)
-            for B in [HelicityCovariant(), Polar(), SphericalCovariant(), HelicityCovariant()]
+            for B in [HelicityCovariant(), Polar(), SphericalCovariant(), Cartesian()]
                 M1 = basisconversionmatrix(HelicityCovariant(), B, θ, ϕ)
                 M2 = basisconversionmatrix(B, SphericalCovariant(), θ, ϕ)
                 M3 = basisconversionmatrix(HelicityCovariant(), SphericalCovariant(), θ, ϕ)
@@ -203,7 +205,7 @@ end
         for l = 0:lmax, m = -l:l
             Y = vshbasis(Irreducible(), SphericalCovariant(), l, m, θ, ϕ, S)
             Yp = parent(Y)
-            for B in [HelicityCovariant(), Polar(), HelicityCovariant()]
+            for B in [HelicityCovariant(), Polar(), Cartesian()]
                 Y2 = vshbasis(Irreducible(), B, l, m, θ, ϕ, S)
                 Y2p = parent(Y2)
                 for l in 1:3
