@@ -124,7 +124,7 @@ _vectorinds(::PB, j) = -1:1
 """
     vshbasis(Y::AbstractVSH, B::Basis, j::Integer, m::Integer, n::Integer, θ, ϕ, [S = VectorSphericalHarmonics.cache(θ, ϕ, j)])
 
-Evaluate the components of the vector spherical harmonics ``Y_{j m}^n(θ, ϕ)`` in the basis `B`.
+Evaluate the components of the vector spherical harmonics ``\\mathbf{Y}_{j m}^n(θ, ϕ)`` in the basis `B`.
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
 """
 function vshbasis(YT::AbstractVSH, B::Basis, j, m, n, θ, ϕ, S::VSHCache = cache(θ, ϕ, j))
@@ -140,7 +140,7 @@ _PBHelicitycheck(::PB, ::HelicityCovariant, M) = Diagonal(M[SVector{3}(diagind(M
 """
     vshbasis(Y::AbstractVSH, B::Basis, j::Integer, m::Integer, θ, ϕ, [S = VectorSphericalHarmonics.cache(θ, ϕ, j)])
 
-Evaluate a set of vector spherical harmonics ``Y_{j m}^\\alpha(θ, ϕ)`` for valid values of ``\\alpha``,
+Evaluate a set of vector spherical harmonics ``\\mathbf{Y}_{j m}^\\alpha(θ, ϕ)`` for valid values of ``\\alpha``,
 and return their components in the basis `B`.
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
 """
@@ -269,7 +269,7 @@ end
 """
     vshbasis(Y::AbstractVSH, B::Basis, modes::Union{SphericalHarmonicModes.LM, SphericalHarmonicModes.ML}, θ, ϕ, [S = maximum(SphericalHarmonicModes.l_range(modes))])
 
-Evaluate a set of vector spherical harmonics ``Y_{j m}^\\alpha(θ, ϕ)`` for valid values of ``\\alpha``
+Evaluate a set of vector spherical harmonics ``\\mathbf{Y}_{j m}^\\alpha(θ, ϕ)`` for valid values of ``\\alpha``
 for all `(j,m)` in `modes`, and return their components in the basis `B`.
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
 """

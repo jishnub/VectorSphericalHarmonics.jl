@@ -222,6 +222,7 @@ end
                 cache!(S, θ, ϕ)
                 for l in 0:lmax, m in -l:l
                     Y = vshbasis(PB(), HelicityCovariant(), l, m, θ, ϕ, S)
+                    @test isapproxdefault(Y[0,0], Ylm[(l,m)])
                     for n in -1:1
                         if n in -min(1, l):min(1, l)
                             @test isapproxdefault(Y[n,n], genspharm(l, m, n, θ, ϕ))

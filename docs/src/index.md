@@ -98,6 +98,18 @@ julia> vshbasis(PB(), HelicityCovariant(), 1, 0, π/3, π/3)
 
 The vectors themselves, therefore, are orthogonal at each point. Such a relation does not hold for the other harmonics.
 
+The diagonal elements of the PB VSH basis are related to the Wigner d-matrix through
+
+```math
+\left[\mathbf{P}_{JM}^{\alpha}\left(\theta,\phi\right)\right]^{\alpha}=\sqrt{\frac{2J+1}{4\pi}}d_{M\alpha}^{J}\left(\theta\right)\exp\left(iM\phi\right),
+```
+
+and the elements for ``\alpha=0`` are scalar spherical harmonics
+
+```math
+\left[\mathbf{Y}_{JM}^{0}\left(\theta,\phi\right)\right]^{0}=Y_{JM}\left(\theta,\phi\right).
+```
+
 One may also compute the matrices for a range of modes using the iterators provided by [`SphericalHarmonicModes.jl`](https://github.com/jishnub/SphericalHarmonicModes.jl). As an example, we may evaluate the matrices for all `M` for `J = 1:3` as
 ```jldoctest VSHmodes
 julia> using SphericalHarmonicModes
