@@ -128,10 +128,11 @@ Evaluate the components of the vector spherical harmonics ``\\mathbf{Y}_{j m}^n(
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
 """
 function vshbasis(YT::AbstractVSH, B::Basis, j, m, n, θ, ϕ, S::VSHCache = cache(θ, ϕ, j))
-    @assert -1 <= n <= 1 "n must satisfy -1 <= n <= 1"
     Y = vshbasis(YT, B, j, m, θ, ϕ, S)
-    Yp_static = SMatrix{3,3}(parent(Y))
-    _maybewrapoffset(Yp_static[:, n + 2], B)
+    Yp = parent(Y)
+    ind2 = first(axes(Y,2))
+    vs = Yp[:, n - ind2 + 1]
+    _maybewrapoffset(vs, B)
 end
 
 _PBHelicitycheck(Y, B, M) = M

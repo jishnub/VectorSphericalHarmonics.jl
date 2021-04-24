@@ -77,6 +77,11 @@ const Ylm = VectorSphericalHarmonics._getY(S);
             @test M * [1,0,0] ≈ [0,1,0] # x̂ == θ̂ at the north pole
             @test M * [0,1,0] ≈ [0,0,1] # ŷ == ϕ̂ at the north pole
             @test M * [0,0,1] ≈ [1,0,0] # ẑ == r̂ at the north pole
+
+            M = basisconversionmatrix(Polar(), Cartesian(), pi, 0)
+            @test M * [1,0,0] ≈ [0,0,-1] # r̂ == -ẑ at the south pole
+            @test M * [0,1,0] ≈ [-1,0,0] # θ̂ == -x̂ at the south pole
+            @test M * [0,0,1] ≈ [0,1,0]  # ϕ̂ == ŷ at the south pole
         end
     end
 end
@@ -403,7 +408,10 @@ end
                 @testset "NorthPole" begin
                     cache!(S, NorthPole(), 0, lmax)
                     for j in 1:lmax, m in -j:j
+                        # test that θ = 0 and θ = NorthPole() lead to identical results
+                        Y0 = vshbasis(Irreducible(), SphericalCovariant(), j, m, 0, 0)
                         Y = vshbasis(Irreducible(), SphericalCovariant(), j, m, NorthPole(), 0, S)
+                        @test isapproxdefault(Y0, Y)
                         if abs(m) > 1
                             @test all(iszero, Y)
                         elseif m == 1 || m == -1
@@ -433,7 +441,10 @@ end
                 @testset "SouthPole" begin
                     cache!(S, SouthPole(), 0, lmax)
                     for j in 1:lmax, m in -j:j
+                        # test that θ = pi and θ = SouthPole() lead to identical results
+                        Y0 = vshbasis(Irreducible(), SphericalCovariant(), j, m, pi, 0)
                         Y = vshbasis(Irreducible(), SphericalCovariant(), j, m, SouthPole(), 0, S)
+                        @test isapproxdefault(Y0, Y)
                         if abs(m) > 1
                             @test all(iszero, Y)
                         elseif m == 1 || m == -1
@@ -490,6 +501,29 @@ end
                                                     √((l-m+1)*(l+m+1)/((2l+1)*(2l+3))) * Ylm[(l+1,m)])
                     @test isapproxdefault(Y[-1,-1], (abs(m+1) <= l-1 ? √((l-m)*(l-m-1)/(2*(2l-1)*(2l+1))) * Ylm[(l-1,m+1)] : 0) -
                                                     √((l+m+1)*(l+m+2)/(2*(2l+1)*(2l+3))) * Ylm[(l+1,m+1)])
+                end
+            end
+        end
+    end
+    @testset "matrix and vectors" begin
+        for θ in LinRange(0, pi, 10), ϕ in LinRange(0, 2pi, 10)
+            cache!(S, θ, ϕ)
+            for YT in [PB(), Irreducible(), Hansen()],
+                B in [Cartesian(), Polar(), SphericalCovariant(), HelicityCovariant()]
+
+                for l in 0:lmax, m in -l:l
+                    Y = vshbasis(YT, B, l, m, θ, ϕ, S)
+                    Yp = parent(Y)
+                    for n in axes(Y, 2)
+                        Yn = vshbasis(YT, B, l, m, n, θ, ϕ, S)
+                        @test begin
+                            res = parent(Y[:, n]) ≈ parent(Yn)
+                            if !res
+                                @show YT, B, l, m, n
+                            end
+                            res
+                        end
+                    end
                 end
             end
         end
