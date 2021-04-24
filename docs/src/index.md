@@ -70,9 +70,9 @@ The function to evaluate such a matrix is [`vshbasis`](@ref). As an example, to 
 ```jldoctest
 julia> vshbasis(Irreducible(), Polar(), 1, 0, 1, π/3, π/3)
 3-element StaticArrays.SVector{3, ComplexF64} with indices SOneTo(3):
-    -0.19947114020071638 + 2.3762446998036102e-18im
-    -0.17274707473566778 + 9.59881327122146e-19im
- -1.1677330786160424e-19 + 1.2864343079066462e-17im
+  1.6776734621228342e-19 - 1.3874241933809394e-17im
+  -4.803764873421188e-18 - 1.0513783175449769e-18im
+ -2.4687675144565694e-18 + 0.29920671030107454im
 ```
 
 In general it's possible to general the entire matrix for one `(J,M)` in one-go, eg.
