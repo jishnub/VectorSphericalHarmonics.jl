@@ -52,12 +52,12 @@ Each set of vector spherical harmonics form a complete, orthonormal basis to dec
 
 ## Representation in a basis
 
-There are four different bases of vectors in which the vector spherical harmonics may be represented:
+There are four different orthonormal bases provided by this package in which the vector spherical harmonics may be represented:
 
-1. Cartesian basis (``\hat{x}``, ``\hat{y}`` and ``\hat{z}``)
-2. Spherical polar basis (``\hat{r}``, ``\hat{\theta}`` and ``\hat{\phi}``)
-3. Spherical (``\chi_\mu``, that are eigenfunctions of ``S^2`` and ``S_z``, where ``\mu\in\{-1,0,1\}``)
-4. Helicity (``\mathbf{e}_\mu``, that are eigenfunctions of ``S^2`` and ``\mathbf{S}\cdot\hat{r}``, where ``\mu\in\{-1,0,1\}``)
+1. [`Cartesian`](@ref) basis (``\hat{x}``, ``\hat{y}`` and ``\hat{z}``)
+2. [`Polar`](@ref) basis (``\hat{r}``, ``\hat{\theta}`` and ``\hat{\phi}``)
+3. [`SphericalCovariant`](@ref) basis (``\chi_\mu``, that are eigenfunctions of ``S^2`` and ``S_z``, where ``\mu\in\{-1,0,1\}``)
+4. [`HelicityCovariant`](@ref) basis (``\mathbf{e}_\mu``, that are eigenfunctions of ``S^2`` and ``\mathbf{S}\cdot\hat{r}``, where ``\mu\in\{-1,0,1\}``)
 
 The vector spherical harmonics ``\mathbf{Y}_{J M}^\alpha`` may be expanded in a basis ``\mathbf{v}_\beta`` as
 ```math
@@ -65,7 +65,7 @@ The vector spherical harmonics ``\mathbf{Y}_{J M}^\alpha`` may be expanded in a 
 ```
 where the components ``Y_{J M}^{\alpha \beta}`` may be expressed as a matrix in the variables ``\alpha`` and ``\beta``. This package evaluates these matrices of coefficients given a harmonic type and a basis set.
 
-The function to evaluate such a matrix is [`vshbasis`](@ref). As an example, to evaluate the components of ``Y_{10}^1(\pi/3, \pi/3)`` in the spherical polar basis, we may use
+The function to evaluate such a matrix is [`vshbasis`](@ref). As an example, to evaluate the components of ``\mathbf{Y}_{10}^1(\pi/3, \pi/3)`` in the spherical polar basis, we may use
 
 ```jldoctest
 julia> vshbasis(Irreducible(), Polar(), 1, 0, 1, π/3, π/3)
@@ -84,7 +84,9 @@ julia> Y = vshbasis(Irreducible(), Polar(), 1, 0, π/3, π/3)
        0.0+0.0im  -2.46877e-18+0.299207im     -1.16773e-19+1.28643e-17im
 ```
 
-Each column of this matrix represents one vector, and each row represents the projection of the VSH along the spherical polar unit vectors (``\hat{r}``, ``\hat{\theta}``, ``\hat{\phi}`` in order). For example, the component ``Y_{10}^1(\pi/3, \pi/3)\cdot\hat{r}`` is given by `Y[1,1]`, the component ``Y_{10}^1(\pi/3, \pi/3)\cdot\hat{\theta}`` is given by `Y[2,1]` while the the component ``Y_{10}^0(\pi/3, \pi/3)\cdot\hat{\theta}`` is given by `Y[2,0]`. Note that the VSH superscript always corresponds to the second axis of the matrix, whereas the basis coresponds to the first axis. The indices of the VSH directly correspond those of the matrix, whereas the first axis of the matrix has indices `0:2` for `Spherical` and `Helicity` bases, and `1:3` for `Spherical` and `Cartesian` bases.
+The matrix elements `Y[α, n]` in this case represent the component ``[\mathbf{Y}_{10}^n(\pi/3, \pi/3)]^\alpha``. For example, the component ``\mathbf{Y}_{10}^1(\pi/3, \pi/3)\cdot\hat{r}`` is given by `Y[1,1]`, the component ``\mathbf{Y}_{10}^1(\pi/3, \pi/3)\cdot\hat{\theta}`` is given by `Y[2,1]` while the the component ``\mathbf{Y}_{10}^0(\pi/3, \pi/3)\cdot\hat{\theta}`` is given by `Y[2,0]`. Note that the VSH superscript always corresponds to the second axis of the matrix, whereas the basis coresponds to the first axis. The indices of the VSH directly correspond those of the matrix, whereas the first axis of the matrix has indices `-1:1` for `SphericalCovariant` and `HelicityCovariant` bases, and `1:3` for `Polar` and `Cartesian` bases.
+
+For the complex bases `SphericalCovariant` and `HelicityCovariant`, the matrix elements represent the contravariant components of the vector harmonics in the respective basis.
 
 The PB basis is of particular importance, as it is locally diagonal in the helicity basis.
 
@@ -96,7 +98,7 @@ julia> vshbasis(PB(), HelicityCovariant(), 1, 0, π/3, π/3)
            ⋅                       ⋅      0.299207-4.35925e-18im
 ```
 
-The vectors themselves, therefore, are orthogonal at each point. Such a relation does not hold for the other harmonics.
+The vectors harmonics themselves, therefore, are orthogonal at each point. Such a relation does not hold for the other harmonics.
 
 The diagonal elements of the PB VSH basis are related to the Wigner d-matrix through
 
