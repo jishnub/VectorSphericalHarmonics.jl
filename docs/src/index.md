@@ -70,8 +70,8 @@ The function to evaluate such a matrix is [`vshbasis`](@ref). As an example, to 
 ```jldoctest
 julia> vshbasis(Irreducible(), Polar(), 1, 0, 1, π/3, π/3)
 3-element StaticArrays.SVector{3, ComplexF64} with indices SOneTo(3):
-    -0.19947114020071638 + 0.0im
-    -0.17274707473566778 + 0.0im
+    -0.19947114020071638 + 2.3762446998036102e-18im
+    -0.17274707473566778 + 9.59881327122146e-19im
  -1.1677330786160424e-19 + 1.2864343079066462e-17im
 ```
 
@@ -79,9 +79,9 @@ In general it's possible to general the entire matrix for one `(J,M)` in one-go,
 ```jldoctest VSHmatrix
 julia> Y = vshbasis(Irreducible(), Polar(), 1, 0, π/3, π/3)
 3×3 OffsetArray(::StaticArrays.SMatrix{3, 3, ComplexF64, 9}, 1:3, 0:2) with eltype ComplexF64 with indices 1:3×0:2:
-  0.141047+0.0im           0.0-1.38778e-17im     -0.199471+0.0im
- -0.244301+0.0im  -3.46945e-18+0.0im             -0.172747+0.0im
-       0.0+0.0im           0.0+0.299207im     -1.16773e-19+1.28643e-17im
+  0.141047+0.0im   1.67767e-19-1.38742e-17im     -0.199471+2.37624e-18im
+ -0.244301+0.0im  -4.80376e-18-1.05138e-18im     -0.172747+9.59881e-19im
+       0.0+0.0im  -2.46877e-18+0.299207im     -1.16773e-19+1.28643e-17im
 ```
 
 Each column of this matrix represents one vector, and each row represents the projection of the VSH along the spherical polar unit vectors (``\hat{r}``, ``\hat{\theta}``, ``\hat{\phi}`` in order). For example, the component ``Y_{10}^1(\pi/3, \pi/3)\cdot\hat{r}`` is given by `Y[1,1]`, the component ``Y_{10}^1(\pi/3, \pi/3)\cdot\hat{\theta}`` is given by `Y[2,1]` while the the component ``Y_{10}^0(\pi/3, \pi/3)\cdot\hat{\theta}`` is given by `Y[2,0]`. Note that the VSH superscript always corresponds to the second axis of the matrix, whereas the basis coresponds to the first axis. The indices of the VSH directly correspond those of the matrix, whereas the first axis of the matrix has indices `0:2` for `Spherical` and `Helicity` bases, and `1:3` for `Spherical` and `Cartesian` bases.
@@ -110,9 +110,9 @@ This returns a vector that may be indexed using `(j,m)` to obtain the individual
 ```jldoctest VSHmodes
 julia> Y[(1,0)]
 3×3 OffsetArray(::StaticArrays.SMatrix{3, 3, ComplexF64, 9}, 1:3, 0:2) with eltype ComplexF64 with indices 1:3×0:2:
-  0.141047+0.0im           0.0-1.38778e-17im     -0.199471+0.0im
- -0.244301+0.0im  -3.46945e-18+0.0im             -0.172747+0.0im
-       0.0+0.0im           0.0+0.299207im     -1.16773e-19+1.28643e-17im
+  0.141047+0.0im   1.67767e-19-1.38742e-17im     -0.199471+2.37624e-18im
+ -0.244301+0.0im  -4.80376e-18-1.05138e-18im     -0.172747+9.59881e-19im
+       0.0+0.0im  -2.46877e-18+0.299207im     -1.16773e-19+1.28643e-17im
 ```
 
 ## Pre-allocation
@@ -145,13 +145,13 @@ julia> @btime vshbasis(PB(), HelicityCovariant(), 1, 0, π/3, π/3, $S);
 There are special methods defined to compute vector spherical harmonics at the poles. One may use the `NorthPole` and `SouthPole` types defined in [`SphericalHarmonics.jl`](https://github.com/jishnub/SphericalHarmonics.jl/) to evaluate these.
 
 ```jldoctest
-julia> import SphericalHarmonics: NorthPole
+julia> using SphericalHarmonics: NorthPole
 
 julia> vshbasis(Irreducible(), Polar(), 1, 0, NorthPole(), 0)
 3×3 OffsetArray(::StaticArrays.SMatrix{3, 3, ComplexF64, 9}, 1:3, 0:2) with eltype ComplexF64 with indices 1:3×0:2:
- 0.282095+0.0im  -0.0+0.0im  -0.398942+0.0im
-      0.0+0.0im  -0.0+0.0im        0.0+0.0im
-      0.0+0.0im   0.0+0.0im        0.0+0.0im
+ 0.282095+0.0im  0.0+0.0im  -0.398942+0.0im
+     -0.0+0.0im  0.0+0.0im        0.0+0.0im
+      0.0+0.0im  0.0+0.0im        0.0+0.0im
 ```
 
 The vector spherical harmonics are non-zero at the poles only for ``m=0,\pm 1``.

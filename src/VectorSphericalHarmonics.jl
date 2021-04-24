@@ -24,7 +24,7 @@ Abstract supertype of vector spherical harmonics
 """
 abstract type AbstractVSH end
 @doc raw"""
-    Irreducible
+    Irreducible <: AbstractVSH
 
 Vector spherical harmonics that are eigenfunctions of irreducible representationa of total, orbital as well as spin angular momenta.
 They may be constructed by coupling scalar spherical harmonics ``Y_{L m}\left(\hat{n}\right)`` with the spherical basis
@@ -37,7 +37,7 @@ vectors ``\chi_\mu`` as
 struct Irreducible <: AbstractVSH end
 
 @doc raw"""
-    Hansen
+    Hansen <: AbstractVSH
 
 Hansen vector spherical harmonics ``\mathbf{H}_{J M}^{(\lambda)}\left(\hat{n}\right)`` that are related to the [`Irreducible`](@ref)
 harmonics through
@@ -53,7 +53,7 @@ harmonics through
 struct Hansen <:AbstractVSH end
 
 @doc raw"""
-    PB
+    PB <: AbstractVSH
 
 Phinney-Burridge vector spherical harmonics ``\mathbf{P}_{J M}^\gamma\left(\hat{n}\right)`` that are related to the [`Hansen`](@ref)
 harmonics through
@@ -140,7 +140,7 @@ _PBHelicitycheck(::PB, ::HelicityCovariant, M) = Diagonal(M[SVector{3}(diagind(M
 """
     vshbasis(Y::AbstractVSH, B::Basis, j::Integer, m::Integer, θ, ϕ, [S = VectorSphericalHarmonics.cache(θ, ϕ, j)])
 
-Evaluate a set of vector spherical harmonics ``Y_{j m}^\\alpha(θ, ϕ)`` for valid values of ``\alpha``,
+Evaluate a set of vector spherical harmonics ``Y_{j m}^\\alpha(θ, ϕ)`` for valid values of ``\\alpha``,
 and return their components in the basis `B`.
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
 """
@@ -163,8 +163,7 @@ end
 # VSH at poles are zero except for M = 0, ±1
 function _vshbasis_angle(Y::AbstractVSH, B::Basis, j, m, θ::Pole, ϕ, S::VSHCache)
     if abs(m) > 1
-        Y = _getY(S)
-        T = eltype(Y)
+        T = _eltypeY(S)
         M = SMatrix{3,3,T}(ntuple(x -> zero(T), Val(9)))
     else
         M = _vshbasis(Y, B, j, m, θ, ϕ, S)
@@ -264,9 +263,16 @@ end
 function _vshbasis(::Irreducible, B::Basis, j, m, θ, ϕ, S::VSHCache)
     Y = _vshbasis(Irreducible(), SphericalCovariant(), j, m, θ, ϕ, S)
     C = basisconversionmatrix(SphericalCovariant(), B, θ, ϕ)
-    conj.(C) * Y
+    C * Y
 end
 
+"""
+    vshbasis(Y::AbstractVSH, B::Basis, modes::Union{SphericalHarmonicModes.LM, SphericalHarmonicModes.ML}, θ, ϕ, [S = maximum(SphericalHarmonicModes.l_range(modes))])
+
+Evaluate a set of vector spherical harmonics ``Y_{j m}^\\alpha(θ, ϕ)`` for valid values of ``\\alpha``
+for all `(j,m)` in `modes`, and return their components in the basis `B`.
+A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
+"""
 function vshbasis(Y::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::VSHCache = cache(θ, ϕ, maximum(l_range(modes))))
     v = [vshbasis(Y, B, j, m, θ, ϕ, S) for (j,m) in modes]
     SHArray(v, modes)
