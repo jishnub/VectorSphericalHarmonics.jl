@@ -38,6 +38,16 @@ The two other sets of harmonics are linear combinations of the `Irreducible` one
 \end{aligned}
 ```
 
+The Hansen VSH basis is related to scalar spherical harmonics through
+
+```math
+\begin{aligned}
+\mathbf{H}_{JM}^{\left(-1\right)}\left(\hat{n}\right) & =\mathbf{n}Y_{JM}\left(\hat{n}\right),\\
+\mathbf{H}_{JM}^{\left(0\right)}\left(\hat{n}\right) & =\frac{-i}{\sqrt{J\left(J+1\right)}}\left(\mathbf{n}\times\bm{\nabla}_{\Omega}\right)Y_{JM}\left(\hat{n}\right)=\frac{\hat{\mathbf{L}}}{\sqrt{J\left(J+1\right)}}Y_{JM}\left(\hat{n}\right),\\
+\mathbf{H}_{JM}^{\left(1\right)}\left(\hat{n}\right) & =\frac{1}{\sqrt{J\left(J+1\right)}}\bm{\nabla}_{\Omega}Y_{JM}\left(\hat{n}\right).
+\end{aligned}
+```
+
 The third set, referred to as `PB` harmonics following their use by Phinney and Burridge (1973), are related to the `Hansen` harmonics through
 
 ```math
@@ -48,7 +58,39 @@ The third set, referred to as `PB` harmonics following their use by Phinney and 
 \end{aligned}
 ```
 
+### Properties of VSH
+
 Each set of vector spherical harmonics form a complete, orthonormal basis to decompose 3D vector fields on a sphere.
+
+```math
+\int_{0}^{\pi}\int_{0}^{2\pi}\mathbf{Y}_{J^{\prime}M^{\prime}}^{L^{\prime}\dagger}\left(\hat{n}\right)\mathbf{Y}_{JM}^{L}\left(\hat{n}\right)\sin\theta d\theta d\phi=\delta_{J^{\prime}J}\delta_{M^{\prime}M}\delta_{L^{\prime}L}.
+```
+
+The various VSH also satisfy some variant of local orthogonality relations. The PB VSH satisfy
+
+```math
+\mathbf{P}_{JM}^{\mu\dagger}\left(\hat{n}\right)\cdot\mathbf{P}_{JM}^{\nu}\left(\hat{n}\right)=0,\quad\mu\neq\nu.
+```
+
+The Hansen VSH satisfy
+
+```math
+\mathbf{H}_{JM}^{\left(\mu\right)}\left(\hat{n}\right)\cdot\mathbf{H}_{JM}^{\left(\nu\right)}\left(\hat{n}\right)=0,\quad\mu\neq\nu.
+```
+
+The Irreducible VSH satisfy
+
+```math
+\sum_{M}\mathbf{Y}_{JM}^{L^{\prime}\dagger}\left(\hat{n}\right)\cdot\mathbf{Y}_{JM}^{L}\left(\hat{n}\right)=0,\quad L\neq L^{\prime}.
+```
+
+In general, the Irreducible VSH satisfies the addition theorem
+
+```math
+\sum_{M}\mathbf{Y}_{JM}^{L^{\prime}\dagger}\left(\hat{n}_{1}\right)\cdot\mathbf{Y}_{JM}^{L}\left(\hat{n}_{2}\right)=\delta_{LL^{\prime}}\frac{\left(2J+1\right)}{4\pi}P_{L}\left(\hat{n}_{1}\cdot\hat{n}_{2}\right),
+```
+
+where the ``P_L`` are Legendre polynomials. The orthogonality may be seen as a special case of the addition theorem.
 
 ## Representation in a basis
 
@@ -98,7 +140,7 @@ julia> vshbasis(PB(), HelicityCovariant(), 1, 0, π/3, π/3)
            ⋅                       ⋅      0.299207-4.35925e-18im
 ```
 
-The vectors harmonics themselves, therefore, are orthogonal at each point. Such a relation does not hold for the other harmonics.
+The vectors harmonics themselves, therefore, are orthogonal at each point.
 
 The diagonal elements of the PB VSH basis are related to the Wigner d-matrix through
 

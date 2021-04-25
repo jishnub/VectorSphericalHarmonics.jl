@@ -532,17 +532,57 @@ end
 
 @testset "Orthogonal" begin
     lmax = 10
-    @testset "PB" begin
-        # The PB basis vectors are directed along the Helicity basis vectors, so they are orthogonal at each point
-        for θ in LinRange(0, pi, 10), ϕ in LinRange(0, 2pi, 10)
-            cache!(S, θ, ϕ)
-            for l in 0:lmax, m in -l:l, B in [SphericalCovariant(), Polar(), HelicityCovariant(), Cartesian()]
-                Y = vshbasis(PB(), B, l, m, θ, ϕ, S)
-                Yp = parent(Y)
-                M = Yp'*Yp
-                for j in axes(M, 2), i in axes(M, 1)
-                    i == j && continue
-                    @test isapprox(M[i, j], 0, atol=1e-13, rtol=1e-8)
+    @testset "Locally orthogonal" begin
+        @testset "PB" begin
+            # The PB basis vectors are directed along the Helicity basis vectors, so they are orthogonal at each point
+            for θ in LinRange(0, pi, 10), ϕ in LinRange(0, 2pi, 10)
+                cache!(S, θ, ϕ);
+                for l in 0:lmax, m in -l:l, B in [SphericalCovariant(), Polar(), HelicityCovariant(), Cartesian()]
+                    Y = vshbasis(PB(), B, l, m, θ, ϕ, S)
+                    Yp = parent(Y)
+                    M = Yp'*Yp
+                    for j in axes(M, 2), i in axes(M, 1)
+                        i == j && continue
+                        @test isapprox(M[i, j], 0, atol=1e-13, rtol=1e-8)
+                    end
+                end
+            end
+        end
+        @testset "Hansen" begin
+            # For Hansen basis, the local orthogonality uses transpose instead of adjoint.
+            for θ in LinRange(0, pi, 10), ϕ in LinRange(0, 2pi, 10)
+                cache!(S, θ, ϕ);
+                for l in 0:lmax, m in -l:l
+                    for B in [Polar(), Cartesian()]
+                        Y = vshbasis(Hansen(), B, l, m, θ, ϕ, S)
+                        Yp = parent(Y)
+                        M = transpose(Yp)*Yp
+                        for j in axes(M, 2), i in axes(M, 1)
+                            i == j && continue
+                            @test begin
+                                res = isapprox(M[i, j], 0, atol=1e-13, rtol=1e-8)
+                                if !res
+                                    @show B, l, m, θ, ϕ
+                                end
+                                res
+                            end
+                        end
+                    end
+                    # For the complex bases, we need to use eμ⋅eν = (-1)^μ δμ,-ν
+                    for B in [SphericalCovariant(), HelicityCovariant()]
+                        Y = vshbasis(Hansen(), B, l, m, θ, ϕ, S)
+                        for j in axes(Y, 2), i in axes(Y, 2)
+                            i == j && continue
+                            M = sum(Y[b,j] * Y[-b,i] * (-1)^b for b = -1:1)
+                            @test begin
+                                res = isapprox(M, 0, atol=1e-13, rtol=1e-8)
+                                if !res
+                                    @show B, l, m, θ, ϕ
+                                end
+                                res
+                            end
+                        end
+                    end
                 end
             end
         end
