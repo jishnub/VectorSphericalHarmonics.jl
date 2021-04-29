@@ -863,31 +863,63 @@ end
 end
 
 @testset "Coordinate rotation" begin
-    #= VSH rotate as Y_{ℓm′}^γ(n′) = ∑_m D^ℓ_{m,m′}(α,β,γ) Y_{ℓm}^γ(n)
-    Assume passive rotation by an angle β about the y axis
-    in the counter-clockwise sense. This implies α = γ = 0.
-    If R represents this passive rotation, we obtain n′ = R⁻¹ n
-    For points on the x-z plane lying on the unit sphere
-    (ie. lying on the prime-meridian), this would imply
-    (θ′, ϕ′=0) = (θ - β, ϕ).
-    =#
+    # We represent an arbitrary point in two coordinate systems
+    # We assume that it has coordinates (θ1,ϕ1) in the first frame and (θ2,ϕ2) in the second frame
+    # The frames may be shown to be related through S2 = Rz(ϕ1)Ry(θ1-θ2)Rz(-ϕ2) S1,
+    # where Ri(ω) represents a rotation about the axis i by an angle ω.
+    # We note that the rotation operator may be represented as D = exp(-iαJz)exp(-iβJy)exp(-iγJz)
+    # Comparing, we obtain α = ϕ1, β = θ1-θ2, γ = -ϕ2
+    # The Spherical harmonics transform through Ylm(n2) = ∑_m′ conj(D^l_{m,m′}(-γ,-β,-α)) Ylm(n1)
+    # Substituting, we obtain the matrix conj(D^l_{m,m′}(ϕ2,θ2-θ1,-ϕ1))
+    # We note that choosing (θ1,ϕ1) = (0,0) in this gives us the matrix conj(D^l_{m,m′}(ϕ2,θ2,0)),
+    # which, using symmetries, reduces to the previous case with the point at the north pole
 
-    α, β, γ = 0, π/10, 0
-    θ = π/4; θ′ = θ - β; ϕ = 0
+    lmax = 5
+    modes = ML(0:lmax)
 
-    modes = ML(1:5)
-    VectorSphericalHarmonics.cache!(S, θ, ϕ);
-    Y = vshbasis(PB(), HelicityCovariant(), modes, θ, ϕ);
-    VectorSphericalHarmonics.cache!(S, θ′, ϕ);
-    Y′ = vshbasis(PB(), HelicityCovariant(), modes, θ′, ϕ);
-
-    for l in l_range(modes)
-        D = OffsetArray(WignerD.wignerD(l, α, β, γ), -l:l, -l:l)
-
-        for m′ in m_range(modes, l), γ in -1:1
-            Y′m′γ = Y′[(l,m′)][γ, γ]
-            DYmγ = sum(D[m, m′] * Y[(l,m)][γ, γ] for m in m_range(modes, l))
-            @test isapprox(Y′m′γ, DYmγ, atol = 1e-13, rtol = 1e-8)
+    S = VectorSphericalHarmonics.cache(0, 0, lmax);
+    Dvec = OffsetArray([zeros(ComplexF64, 2l+1, 2l+1) for l in 0:lmax], 0:lmax);
+    @testset "NorthPole" begin
+        for YT in [Irreducible(), Hansen(), PB()], B in [Polar(), HelicityCovariant()]
+            YNP = vshbasis(YT, B, modes, NorthPole(), 0);
+            for θ in LinRange(0, pi, 10), ϕ in LinRange(0, 2pi, 10)
+                VectorSphericalHarmonics.cache!(S, θ, ϕ);
+                for l in 0:lmax
+                    Dp = wignerD!(Dvec[l], l, 0, -θ, -ϕ);
+                    D = OffsetArray(Dp, -l:l, -l:l)
+                    YNP_rot = OffsetArray([sum(D[m′, m] * YNP[(l, m′)] for m′ in -l:l) for m in axes(D, 2)], -l:l)
+                    for m in -l:l
+                        Ylmθϕ = vshbasis(YT, B, l, m, θ, ϕ, S)
+                        @test begin
+                            res = isapprox(Ylmθϕ, YNP_rot[m], atol = 1e-13, rtol = 1e-8)
+                            if !res
+                                @show l, m, θ, ϕ
+                            end
+                            res
+                        end
+                    end
+                end
+            end
+        end
+    end
+    @testset "arbitrary point" begin
+        for θ1 in LinRange(0, pi, 10), ϕ1 in LinRange(0, 2pi, 10)
+            for YT in [Irreducible(), Hansen(), PB()], B in [Polar(), HelicityCovariant()]
+                VectorSphericalHarmonics.cache!(S, θ1, ϕ1);
+                Y1 = vshbasis(YT, B, modes, θ1, ϕ1, S)
+                for θ in LinRange(0, pi, 10), ϕ in LinRange(0, 2pi, 10)
+                    VectorSphericalHarmonics.cache!(S, θ, ϕ);
+                    for l in 0:lmax
+                        Dp = wignerD!(Dvec[l], l, ϕ1, θ1-θ, -ϕ);
+                        D = OffsetArray(Dp, -l:l, -l:l)
+                        Y1_rot = OffsetArray([sum(D[m′, m] * Y1[(l, m′)] for m′ in -l:l) for m in axes(D, 2)], -l:l)
+                        for m in -l:l
+                            Ylmθϕ = vshbasis(YT, B, l, m, θ, ϕ, S)
+                            @test isapprox(Ylmθϕ, Y1_rot[m], atol = 1e-13, rtol = 1e-8)
+                        end
+                    end
+                end
+            end
         end
     end
 end

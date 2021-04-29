@@ -212,6 +212,19 @@ julia> vshbasis(Irreducible(), Polar(), 1, 0, NorthPole(), 0)
 
 The vector spherical harmonics are non-zero at the poles only for ``m=0,\pm 1``.
 
+# Rotation of coordinates
+
+We assume that a point ``\hat{n}`` has the coordinates ``(\theta_1,\phi_1)`` in the frame ``S_1`` and ``(\theta_2,\phi_2)`` in the frame ``S_2``, where the two frames are related by a rotation ``S_2 = R_z\left(\phi_1\right)R_y\left(\theta_1-\theta_2\right)R_z\left(-\phi_2\right)`` about a set of axes fixed in space. Under this rotation, vector spherical harmonics at the two points are related by
+
+```math
+\mathbf{Y}_{JM^{\prime}}^{\alpha}\left(\theta_{2},\phi_{2}\right)=\sum_{M}D_{MM^{\prime}}^{J}\left(\phi_{1},\theta_{1}-\theta_{2},-\phi_{2}\right)\mathbf{Y}_{JM}^{\alpha}\left(\theta_{1},\phi_{1}\right),
+```
+
+where ``D_{MM^{\prime}}^{J}`` are elements of the Wigner D-matrix. This relation holds for all the harmonics defined here. An important point to note here is that the new vector spherical harmonics ``\mathbf{Y}_{JM^{\prime}}^{\alpha}\left(\theta_{2},\phi_{2}\right)`` are computed about the rotated set of axes ``S_2``, whereas ``\mathbf{Y}_{JM}^{\alpha}\left(\theta_{1},\phi_{1}\right)`` are evaluated about ``S_1``. A similar relation may be obtained for the `Polar` and `HelicityCovariant` components of vector spherical harmonics.
+
+!!! note
+    This relation does not hold for the `Cartesian` and `SphericalCovariant` components of the vector harmonics, as the axes of ``S_1`` and ``S_2`` are oriented differently in space.
+
 # Index
 
 ```@autodocs
