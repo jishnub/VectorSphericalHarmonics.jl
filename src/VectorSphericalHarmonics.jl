@@ -9,6 +9,7 @@ using SphericalHarmonicArrays
 import SphericalHarmonics: Pole, NorthPole, SouthPole
 
 export vshbasis
+export genspharm
 export PB
 export Irreducible
 export Hansen
@@ -276,6 +277,42 @@ A pre-allocated array of scalar spherical harmonics `S` may be passed as the fin
 """
 function vshbasis(Y::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::VSHCache = cache(θ, ϕ, maximum(l_range(modes))))
     v = [vshbasis(Y, B, j, m, θ, ϕ, S) for (j,m) in modes]
+    SHArray(v, modes)
+end
+
+
+"""
+    genspharm(j, m, θ, ϕ, [S = VectorSphericalHarmonics.cache(θ, ϕ, j)])
+
+Evaluate the diagonal elements of the Phinney-Burridge ([`PB`](@ref)) vector spherical harmonics
+in the [`HelicityCovariant`](@ref) basis for one mode `(j,m)`. Returns an array `Y` whose elements
+`Y[n]` are given by
+
+```math
+Y_{jm}^N(\\theta,\\phi) = \\left[\\mathbf{P}_{j m}^N(θ, ϕ)\\right]^N
+```
+
+These components are referred to as "generalized spherical harmonics" by Dahlen & Tromp (1998),
+which is the nomenclature used here.
+
+A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
+"""
+function genspharm(j, m, θ, ϕ, S::VSHCache = cache(θ, ϕ, j))
+    Y = vshbasis(PB(), HelicityCovariant(), j, m, θ, ϕ, S)
+    M = diag(parent(Y))
+    OffsetArray(M, _basisinds(HelicityCovariant()))
+end
+
+"""
+    genspharm(modes::Union{SphericalHarmonicModes.LM, SphericalHarmonicModes.ML}, θ, ϕ, [S = maximum(SphericalHarmonicModes.l_range(modes))])
+
+Evaluate the diagonal elements of the Phinney-Burridge ([`PB`](@ref)) vector spherical harmonics
+in the [`HelicityCovariant`](@ref) basis for all modes `(j,m)` in `modes`.
+
+A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
+"""
+function genspharm(modes::Union{ML,LM}, θ, ϕ, S::VSHCache = cache(θ, ϕ, maximum(l_range(modes))))
+    v = [genspharm(j, m, θ, ϕ, S) for (j,m) in modes]
     SHArray(v, modes)
 end
 
