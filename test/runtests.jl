@@ -22,7 +22,7 @@ end
 isapproxdefault(a, b) = isapprox(a, b, atol = 1e-14, rtol = sqrt(eps(Float64)))
 isapproxdefault(x::Tuple{Any, Any}) = isapproxdefault(x...)
 
-function genspharm(l, m, n, θ, ϕ)
+function genspharm2(l, m, n, θ, ϕ)
     @assert abs(m) <= l "m must satisfy -l <= m <= l, received l = $l, m = $m"
     @assert abs(n) <= l "n must satisfy -l <= n <= l, received l = $l, n = $n"
     √((2l+1)/4π) * WignerD.wignerdjmn(l, m, n, θ) * cis(m * ϕ)
@@ -232,7 +232,7 @@ end
                     @test isapproxdefault(Y[0,0], Ylm[(l,m)])
                     for n in -1:1
                         if n in -min(1, l):min(1, l)
-                            @test isapproxdefault(Y[n,n], genspharm(l, m, n, θ, ϕ))
+                            @test isapproxdefault(Y[n,n], genspharm2(l, m, n, θ, ϕ))
                         else
                             @test isapproxdefault(Y[n,n], 0)
                         end
@@ -523,6 +523,24 @@ end
                             end
                             res
                         end
+                    end
+                end
+            end
+        end
+
+        @testset "genspharm" begin
+            for θ in LinRange(0, pi, 10), ϕ in LinRange(0, 2pi, 10)
+                cache!(S, θ, ϕ)
+                G2 = genspharm(ML(0:lmax), θ, ϕ, S)
+                for l in 0:lmax, m in -l:l
+                    Y = vshbasis(PB(), HelicityCovariant(), l, m, θ, ϕ, S)
+                    G = genspharm(l, m, θ, ϕ, S)
+                    @test G2[(l,m)] == G
+                    nmax = min(1, l)
+                    for n in -nmax:nmax
+                        Ylmn = genspharm2(l, m, n, θ, ϕ)
+                        @test Y[n,n] == G[n]
+                        @test isapproxdefault(G[n], Ylmn)
                     end
                 end
             end

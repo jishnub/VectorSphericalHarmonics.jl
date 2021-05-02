@@ -140,7 +140,15 @@ julia> vshbasis(PB(), HelicityCovariant(), 1, 0, π/3, π/3)
            ⋅                       ⋅      0.299207-4.35925e-18im
 ```
 
-The vectors harmonics themselves, therefore, are orthogonal at each point.
+The vectors harmonics themselves, therefore, are orthogonal at each point. One may obtain the diagonal elements through the function [`genspharm`](@ref).
+
+```jldoctest
+julia> genspharm(1, 0, π/3, π/3)
+3-element OffsetArray(::StaticArrays.SVector{3, ComplexF64}, -1:1) with eltype ComplexF64 with indices -1:1:
+ -0.2992067103010745 - 1.7959178942769708e-18im
+ 0.24430125595146002 + 0.0im
+  0.2992067103010745 - 4.359250168826542e-18im
+```
 
 The diagonal elements of the PB VSH basis are related to the Wigner d-matrix through
 
