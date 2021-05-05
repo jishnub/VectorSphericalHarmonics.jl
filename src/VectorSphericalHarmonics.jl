@@ -4,12 +4,15 @@ using OffsetArrays
 using StaticArrays
 using LinearAlgebra
 using SphericalHarmonics
+using SphericalHarmonics: Pole, NorthPole, SouthPole
+import SphericalHarmonics: eltypeY, eltypeP, getY
 using SphericalHarmonicModes
 using SphericalHarmonicArrays
-import SphericalHarmonics: Pole, NorthPole, SouthPole
 
 export vshbasis
+export vshbasis!
 export genspharm
+export genspharm!
 export PB
 export Irreducible
 export Hansen
@@ -71,7 +74,7 @@ struct PB <: AbstractVSH end
 
 include("basis.jl")
 
-struct VSHCache{T}
+struct SHCache{T}
     S :: T
 end
 
@@ -85,10 +88,10 @@ The type `T` sets the precision used to evaluate the harmonics.
 The spherical harmonics evaluated will be of type `Complex{T}`.
 """
 cache(θ, ϕ, jmax) = cache(Float64, θ, ϕ, jmax)
-function cache(T::Type, θ, ϕ, jmax)
+function cache(::Type{T}, θ, ϕ, jmax) where {T}
     S = SphericalHarmonics.cache(T, jmax + 1)
     shcache!(S, θ, ϕ)
-    return VSHCache(S)
+    return SHCache(S)
 end
 
 @doc raw"""
@@ -98,7 +101,7 @@ Update a pre-allocated set of scalar spherical harmonics ``Y_{j m}(\theta,\phi)`
 The cutoff `jmax` corresponds to the maximum degree of vector harmonics that we seek to evaluate.
 If this is not provided, the cutoff angular degree in `S` will remain unchanged.
 """
-cache!(S::VSHCache, θ, ϕ, jmax...) = (shcache!(S.S, θ, ϕ, jmax...); return S)
+cache!(S::SHCache, θ, ϕ, jmax...) = (shcache!(S.S, θ, ϕ, jmax...); return S)
 function shcache!(S, θ, ϕ, jmax)
     computePlmcostheta!(S, θ, jmax + 1)
     computeYlm!(S, θ, ϕ, jmax + 1)
@@ -110,10 +113,27 @@ function shcache!(S, θ, ϕ)
     return S
 end
 
-_getY(S::VSHCache) = S.S.Y
-_getP(S::VSHCache) = S.S.P
-_eltypeY(S::VSHCache) = eltype(_getY(S))
-_eltypeP(S::VSHCache) = eltype(_getP(S))
+getY(S::SHCache) = getY(S.S)
+eltypeY(S::SHCache) = eltypeY(S.S)
+eltypeP(S::SHCache) = eltypeP(S.S)
+
+struct VSHCache{SHC, VT}
+    S :: SHC
+    V :: VT
+end
+
+function VSHCache(T::Type, Y, B, θ, ϕ, modes::Union{LM, ML})
+    jmax = maximum(l_range(modes))
+    S = cache(T, θ, ϕ, jmax)
+    V = vshbasis(Y, B, modes, θ, ϕ, S)
+    VSHCache(S, V)
+end
+function VSHCache(T::Type, θ, ϕ, modes::Union{LM, ML})
+    jmax = maximum(l_range(modes))
+    S = cache(T, θ, ϕ, jmax)
+    V = genspharm(modes, θ, ϕ, S)
+    VSHCache(S, V)
+end
 
 _maybewrapoffset(v, ::Union{Cartesian, Polar}) = v
 _maybewrapoffset(v, B::Basis) = OffsetArray(v, _basisinds(B))
@@ -128,7 +148,7 @@ _vectorinds(::PB, j) = -1:1
 Evaluate the components of the vector spherical harmonics ``\\mathbf{Y}_{j m}^n(θ, ϕ)`` in the basis `B`.
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
 """
-function vshbasis(YT::AbstractVSH, B::Basis, j, m, n, θ, ϕ, S::VSHCache = cache(θ, ϕ, j))
+function vshbasis(YT::AbstractVSH, B::Basis, j, m, n, θ, ϕ, S::SHCache = cache(θ, ϕ, j))
     Y = vshbasis(YT, B, j, m, θ, ϕ, S)
     Yp = parent(Y)
     ind2 = first(axes(Y,2))
@@ -146,13 +166,13 @@ Evaluate a set of vector spherical harmonics ``\\mathbf{Y}_{j m}^\\alpha(θ, ϕ)
 and return their components in the basis `B`.
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
 """
-function vshbasis(Y::AbstractVSH, B::Basis, j::Integer, m::Integer, θ, ϕ, S::VSHCache = cache(θ, ϕ, j))
+function vshbasis(Y::AbstractVSH, B::Basis, j::Integer, m::Integer, θ, ϕ, S::SHCache = cache(θ, ϕ, j))
     M = _vshbasis_angle(Y, B, j, m, θ, ϕ, S)
     M2 = _PBHelicitycheck(Y, B, M)
     OffsetArray(M2, _basisinds(B), _vectorinds(Y, j))
 end
 
-function _vshbasis_angle(Y::AbstractVSH, B::Basis, j, m, θ, ϕ, S::VSHCache)
+function _vshbasis_angle(Y::AbstractVSH, B::Basis, j, m, θ, ϕ, S::SHCache)
     if θ == 0
         return _vshbasis_angle(Y, B, j, m, NorthPole(), ϕ, S)
     elseif θ == pi
@@ -163,9 +183,9 @@ function _vshbasis_angle(Y::AbstractVSH, B::Basis, j, m, θ, ϕ, S::VSHCache)
 end
 
 # VSH at poles are zero except for M = 0, ±1
-function _vshbasis_angle(Y::AbstractVSH, B::Basis, j, m, θ::Pole, ϕ, S::VSHCache)
+function _vshbasis_angle(Y::AbstractVSH, B::Basis, j, m, θ::Pole, ϕ, S::SHCache)
     if abs(m) > 1
-        T = _eltypeY(S)
+        T = eltypeY(S)
         M = SMatrix{3,3,T}(ntuple(x -> zero(T), Val(9)))
     else
         M = _vshbasis(Y, B, j, m, θ, ϕ, S)
@@ -180,7 +200,7 @@ function _vshbasis(::PB, B, j, m, θ, ϕ, S)
     H0  = Hp_static[:, 2]
     Hp1 = Hp_static[:, 3]
 
-    T = _eltypeP(S)
+    T = eltypeP(S)
     Ym1 = 1/√T(2) * (Hp1 + H0)
     Y0 = Hm1
     Yp1 = 1/√T(2) * (Hp1 - H0)
@@ -195,7 +215,7 @@ function __vshbasis(::Hansen, B, j, m, θ, ϕ, S)
     Yj  = Yp_static[:, 2]
     Yjp1 = Yp_static[:, 3]
 
-    T = _eltypeP(S)
+    T = eltypeP(S)
     Hp1 = √(T(j)/(2j+1)) * Yjp1 + √(T(j+1)/(2j+1)) * Yjm1
     H0 = Yj
     Hm1 = -√(T(j+1)/(2j+1)) * Yjp1 + √(T(j)/(2j+1)) * Yjm1
@@ -207,14 +227,14 @@ function _vshbasis(::Hansen, B, j, m, θ, ϕ, S)
     M = __vshbasis(Hansen(), B, j, m, θ, ϕ, S)
     parent(M)
 end
-function _vshbasis(::Hansen, B::Polar, j, m, θ, ϕ, S::VSHCache)
+function _vshbasis(::Hansen, B::Polar, j, m, θ, ϕ, S::SHCache)
     HO = __vshbasis(Hansen(), B, j, m, θ, ϕ, S)
     Hm1 = SVector{3}(HO[1,-1], zero(eltype(HO)), zero(eltype(HO)))
     H0 = SVector{3}(zero(eltype(HO)), HO[2,0], HO[3,0])
     Hp1 = SVector{3}(zero(eltype(HO)), HO[2,1], HO[3,1])
     SMatrix{3,3}(Hm1..., H0..., Hp1...)
 end
-function _vshbasis(::Hansen, B::HelicityCovariant, j, m, θ, ϕ, S::VSHCache)
+function _vshbasis(::Hansen, B::HelicityCovariant, j, m, θ, ϕ, S::SHCache)
     HO = __vshbasis(Hansen(), B, j, m, θ, ϕ, S)
     Hm1 = SVector{3}(zero(eltype(HO)), HO[0,-1], zero(eltype(HO)))
     H0 = SVector{3}(HO[-1,0], zero(eltype(HO)), HO[1,0])
@@ -222,10 +242,10 @@ function _vshbasis(::Hansen, B::HelicityCovariant, j, m, θ, ϕ, S::VSHCache)
     SMatrix{3,3}(Hm1..., H0..., Hp1...)
 end
 
-function _vshbasis(::Irreducible, B::SphericalCovariant, j, m, θ, ϕ, S::VSHCache)
-    Y = _getY(S)
+function _vshbasis(::Irreducible, B::SphericalCovariant, j, m, θ, ϕ, S::SHCache)
+    Y = getY(S)
     TC = eltype(Y)
-    T = _eltypeP(S)
+    T = eltypeP(S)
     M = MMatrix{3, 3, TC}(ntuple(x -> zero(TC), Val(9)))
     Mof = OffsetArray(M, _basisinds(B), j .+ (-1:1))
     jmm = j-m
@@ -262,7 +282,7 @@ function _vshbasis(::Irreducible, B::SphericalCovariant, j, m, θ, ϕ, S::VSHCac
 
     SMatrix(M)
 end
-function _vshbasis(::Irreducible, B::Basis, j, m, θ, ϕ, S::VSHCache)
+function _vshbasis(::Irreducible, B::Basis, j, m, θ, ϕ, S::SHCache)
     Y = _vshbasis(Irreducible(), SphericalCovariant(), j, m, θ, ϕ, S)
     C = basisconversionmatrix(SphericalCovariant(), B, θ, ϕ)
     C * Y
@@ -275,11 +295,23 @@ Evaluate a set of vector spherical harmonics ``\\mathbf{Y}_{j m}^\\alpha(θ, ϕ)
 for all `(j,m)` in `modes`, and return their components in the basis `B`.
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
 """
-function vshbasis(Y::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::VSHCache = cache(θ, ϕ, maximum(l_range(modes))))
+function vshbasis(Y::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
     v = [vshbasis(Y, B, j, m, θ, ϕ, S) for (j,m) in modes]
     SHArray(v, modes)
 end
+function vshbasis!(A::AbstractVector, Y::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
+    for (ind, (j,m)) in zip(eachindex(A), modes)
+        A[ind] = vshbasis(Y, B, j, m, θ, ϕ, S)
+    end
+    return A
+end
 
+function vshbasis!(V::VSHCache, Y::AbstractVSH, B::Basis, θ, ϕ)
+    cache!(V.S, θ, ϕ)
+    modes = first(SphericalHarmonicArrays.modes(V.V))
+    vshbasis!(parent(V.V), Y, B, modes, θ, ϕ, V.S)
+    return V.V
+end
 
 """
     genspharm(j, m, θ, ϕ, [S = VectorSphericalHarmonics.cache(θ, ϕ, j)])
@@ -297,7 +329,7 @@ which is the nomenclature used here.
 
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
 """
-function genspharm(j, m, θ, ϕ, S::VSHCache = cache(θ, ϕ, j))
+function genspharm(j, m, θ, ϕ, S::SHCache = cache(θ, ϕ, j))
     Y = vshbasis(PB(), HelicityCovariant(), j, m, θ, ϕ, S)
     M = diag(parent(Y))
     OffsetArray(M, _basisinds(HelicityCovariant()))
@@ -311,9 +343,23 @@ in the [`HelicityCovariant`](@ref) basis for all modes `(j,m)` in `modes`.
 
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
 """
-function genspharm(modes::Union{ML,LM}, θ, ϕ, S::VSHCache = cache(θ, ϕ, maximum(l_range(modes))))
+function genspharm(modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
     v = [genspharm(j, m, θ, ϕ, S) for (j,m) in modes]
     SHArray(v, modes)
+end
+
+function genspharm!(A::AbstractVector, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
+    for (ind, (j,m)) in zip(eachindex(A), modes)
+        A[ind] = genspharm(j, m, θ, ϕ, S)
+    end
+    return A
+end
+
+function genspharm!(V::VSHCache, θ, ϕ)
+    cache!(V.S, θ, ϕ)
+    modes = first(SphericalHarmonicArrays.modes(V.V))
+    genspharm!(parent(V.V), modes, θ, ϕ, V.S)
+    return V.V
 end
 
 end
