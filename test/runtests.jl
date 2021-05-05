@@ -950,19 +950,19 @@ end
     @testset "vshbasis!" begin
         V = VectorSphericalHarmonics.VSHCache(Float64, Irreducible(), Polar(), θ1, ϕ1, modes);
         M = vshbasis(Irreducible(), Polar(), modes, θ1, ϕ1)
-        @test V.V == M
+        @test getY(V) == M
 
         vshbasis!(V, Irreducible(), Polar(), θ2, ϕ2)
         M = vshbasis(Irreducible(), Polar(), modes, θ2, ϕ2)
-        @test V.V == M
+        @test getY(V) == M
     end
     @testset "genspharm!" begin
         V = VectorSphericalHarmonics.VSHCache(Float64, θ1, ϕ1, modes);
         M = genspharm(modes, θ1, ϕ1)
-        @test V.V == M
+        @test getY(V) == M
 
         genspharm!(V, θ2, ϕ2)
         M = genspharm(modes, θ2, ϕ2)
-        @test V.V == M
+        @test getY(V) == M
     end
 end
