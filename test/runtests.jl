@@ -5,11 +5,11 @@ using LinearAlgebra
 using LegendrePolynomials
 using OffsetArrays
 using SphericalHarmonics
+using SphericalHarmonics: NorthPole, SouthPole, getY, eltypeY
 using SphericalHarmonicModes
 using WignerD
 using HCubature
 using VectorSphericalHarmonics: basisconversionmatrix, cache, cache!
-using SphericalHarmonics: NorthPole, SouthPole
 
 @testset "project quality" begin
     if VERSION >= v"1.6"
@@ -29,7 +29,7 @@ function genspharm2(l, m, n, θ, ϕ)
 end
 
 const S = cache(0, 0, 10);
-const Ylm = VectorSphericalHarmonics._getY(S);
+const Ylm = getY(S);
 
 @testset "Basis" begin
     for θ in LinRange(0, pi, 10), ϕ in LinRange(0, 2pi, 10)
@@ -942,3 +942,28 @@ end
     end
 end
 
+@testset "VSHcache" begin
+    modes = LM(0:1, 0:1)
+    lmax = 2
+    θ1, ϕ1 = pi/3, pi/2
+    θ2, ϕ2 = pi/4, pi/6
+    @testset "vshbasis!" begin
+        V = VectorSphericalHarmonics.VSHCache(Float64, Irreducible(), Polar(), θ1, ϕ1, modes);
+        M = vshbasis(Irreducible(), Polar(), modes, θ1, ϕ1)
+        @test getY(V) == M
+        @test eltypeY(V) == eltype(getY(V))
+
+        vshbasis!(V, Irreducible(), Polar(), θ2, ϕ2)
+        M = vshbasis(Irreducible(), Polar(), modes, θ2, ϕ2)
+        @test getY(V) == M
+    end
+    @testset "genspharm!" begin
+        V = VectorSphericalHarmonics.VSHCache(Float64, θ1, ϕ1, modes);
+        M = genspharm(modes, θ1, ϕ1)
+        @test getY(V) == M
+
+        genspharm!(V, θ2, ϕ2)
+        M = genspharm(modes, θ2, ϕ2)
+        @test getY(V) == M
+    end
+end
