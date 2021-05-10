@@ -13,9 +13,9 @@ using VectorSphericalHarmonics: basisconversionmatrix, cache, cache!
 
 @testset "project quality" begin
     if VERSION >= v"1.6"
-        Aqua.test_all(SphericalHarmonics, ambiguities = (recursive = false,))
+        Aqua.test_all(VectorSphericalHarmonics, ambiguities = (recursive = false,))
     else
-        Aqua.test_all(SphericalHarmonics, ambiguities = false)
+        Aqua.test_all(VectorSphericalHarmonics, ambiguities = false)
     end
 end
 
