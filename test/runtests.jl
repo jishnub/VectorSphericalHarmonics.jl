@@ -905,7 +905,7 @@ end
                 for l in 0:lmax
                     Dp = wignerD!(Dvec[l], l, 0, -θ, -ϕ);
                     D = OffsetArray(Dp, -l:l, -l:l)
-                    YNP_rot = OffsetArray([sum(D[m′, m] * YNP[(l, m′)] for m′ in -l:l) for m in axes(D, 2)], -l:l)
+                    YNP_rot = [sum(D[m′, m] * YNP[(l, m′)] for m′ in -l:l) for m in axes(D, 2)]
                     for m in -l:l
                         Ylmθϕ = vshbasis(YT, B, l, m, θ, ϕ, S)
                         @test begin
@@ -921,19 +921,23 @@ end
         end
     end
     @testset "arbitrary point" begin
-        for θ1 in LinRange(0, pi, 10), ϕ1 in LinRange(0, 2pi, 10)
+        for θ in LinRange(0, pi, 10), ϕ in LinRange(0, 2pi, 10)
             for YT in [Irreducible(), Hansen(), PB()], B in [Polar(), HelicityCovariant()]
-                VectorSphericalHarmonics.cache!(S, θ1, ϕ1);
-                Y1 = vshbasis(YT, B, modes, θ1, ϕ1, S)
-                for θ in LinRange(0, pi, 10), ϕ in LinRange(0, 2pi, 10)
-                    VectorSphericalHarmonics.cache!(S, θ, ϕ);
+                VectorSphericalHarmonics.cache!(S, θ, ϕ);
+                Y = vshbasis(YT, B, modes, θ, ϕ, S)
+                YG = genspharm(modes, θ, ϕ, S)
+                for θ′ in LinRange(0, pi, 10), ϕ′ in LinRange(0, 2pi, 10)
+                    VectorSphericalHarmonics.cache!(S, θ′, ϕ′);
                     for l in 0:lmax
-                        Dp = wignerD!(Dvec[l], l, ϕ1, θ1-θ, -ϕ);
+                        Dp = wignerD!(Dvec[l], l, ϕ, θ-θ′, -ϕ′);
                         D = OffsetArray(Dp, -l:l, -l:l)
-                        Y1_rot = OffsetArray([sum(D[m′, m] * Y1[(l, m′)] for m′ in -l:l) for m in axes(D, 2)], -l:l)
+                        Y_rot = [sum(D[m′, m] * Y[(l, m′)] for m′ in -l:l) for m in axes(D, 2)]
+                        YG_rot = [sum(D[m′, m] * YG[(l, m′)] for m′ in -l:l) for m in axes(D, 2)]
                         for m in -l:l
-                            Ylmθϕ = vshbasis(YT, B, l, m, θ, ϕ, S)
-                            @test isapprox(Ylmθϕ, Y1_rot[m], atol = 1e-13, rtol = 1e-8)
+                            Ylmθ′ϕ′ = vshbasis(YT, B, l, m, θ′, ϕ′, S)
+                            @test isapprox(Ylmθ′ϕ′, Y_rot[m], atol = 1e-13, rtol = 1e-8)
+                            YGlmθ′ϕ′ = genspharm(l, m, θ′, ϕ′, S)
+                            @test isapprox(YGlmθ′ϕ′, YG_rot[m], atol = 1e-13, rtol = 1e-8)
                         end
                     end
                 end
