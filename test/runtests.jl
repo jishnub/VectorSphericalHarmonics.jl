@@ -943,11 +943,13 @@ end
                     θ′, ϕ′ = polcoords(n′)
                     VectorSphericalHarmonics.cache!(S′, θ′, ϕ′);
                     U′n = basisconversionmatrix(Cartesian(), HelicityCovariant(), θ′, ϕ′);
+                    R′ = (U′n * R' * Un')
+                    @test R′ ≈ Diagonal(R′)
                     for l in 0:lmax
                         Dp = wignerD!(Dvec[l], l, α, β, γ);
                         D = OffsetArray(Dp, -l:l, -l:l)
                         for m in -l:l
-                            Ylθϕrot_m = sum(D[m′, m] * (U′n * R' * Un') * parent(Y[(l, m′)]) for m′ in -l:l)
+                            Ylθϕrot_m = sum(D[m′, m] * R′ * parent(Y[(l, m′)]) for m′ in -l:l)
                             Ylmθ′ϕ′ = parent(genspharm(l, m, θ′, ϕ′, S′))
                             @test isapprox(Ylmθ′ϕ′, Ylθϕrot_m, atol = 1e-13, rtol = 1e-8)
                         end
@@ -964,6 +966,12 @@ end
                 for YT in [Irreducible(), Hansen(), PB()], B in [Cartesian(), SphericalCovariant(), HelicityCovariant(), Polar()]
                     Un = basisconversionmatrix(Cartesian(), B, θ, ϕ)
                     Y = vshbasis(YT, B, modes, θ, ϕ, S);
+
+                    # We evaluate the rotation of the dot product between VSH and a vector field
+                    # In this case we choose a constant vector field directed along x̂ at each point,
+                    # where x̂ is directed along the x axis of the frame S (which differs from that of S′ in general)
+                    # We evaluate the components in the basis B at both points
+                    x_n = Un * SVector{3}(1,0,0)
 
                     if B ∈ (Polar(), HelicityCovariant())
                         for θ′ in LinRange(0, pi, 6), ϕ′ in LinRange(0, 2pi, 6)
@@ -1004,12 +1012,23 @@ end
                         θ′, ϕ′ = polcoords(n′)
                         VectorSphericalHarmonics.cache!(S′, θ′, ϕ′);
                         U′n = basisconversionmatrix(Cartesian(), B, θ′, ϕ′);
+
+                        R′ = (U′n * R' * Un')
+                        if B === HelicityCovariant()
+                            @test R′ ≈ Diagonal(R′)
+                        end
+
+                        x_n′ = R′ * x_n
+
                         for l in 0:lmax
                             Dp = wignerD!(Dvec[l], l, α, β, γ);
                             D = OffsetArray(Dp, -l:l, -l:l)
                             for m in -l:l
-                                Ylθϕrot_m = sum(D[m′, m] * (U′n * R' * Un') * parent(Y[(l, m′)]) for m′ in -l:l)
+                                Ylθϕrot_m = sum(D[m′, m] * R′ * parent(Y[(l, m′)]) for m′ in -l:l)
                                 Ylmθ′ϕ′ = parent(vshbasis(YT, B, l, m, θ′, ϕ′, S′))
+                                @test isapprox(Ylmθ′ϕ′, Ylθϕrot_m, atol = 1e-13, rtol = 1e-8)
+                                Ylθϕrot_m = x_n' * sum(D[m′, m] * parent(Y[(l, m′)]) for m′ in -l:l)
+                                Ylmθ′ϕ′ = x_n′' * parent(vshbasis(YT, B, l, m, θ′, ϕ′, S′))
                                 @test isapprox(Ylmθ′ϕ′, Ylθϕrot_m, atol = 1e-13, rtol = 1e-8)
                             end
                         end
