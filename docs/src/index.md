@@ -222,16 +222,28 @@ The vector spherical harmonics are non-zero at the poles only for ``m=0,\pm 1``.
 
 # Rotation of coordinates
 
-We assume that a point ``\hat{n}`` has the coordinates ``(\theta_1,\phi_1)`` in the frame ``S_1`` and ``(\theta_2,\phi_2)`` in the frame ``S_2``, where the two frames are related by a rotation ``S_2 = R_z\left(\phi_1\right)R_y\left(\theta_1-\theta_2\right)R_z\left(-\phi_2\right)`` about a set of axes fixed in space. Under this rotation, vector spherical harmonics at the two points are related by
+We assume that a point ``\hat{n}`` has the coordinates ``(\theta_1,\phi_1)`` in the frame ``S_1`` and ``(\theta_2,\phi_2)`` in the frame ``S_2``, where the two frames are related by a rotation ``S_2 = R S_1``. Under this rotation, vector spherical harmonics at the point ``\hat{n}`` computed in the two frames are related by
 
 ```math
-\mathbf{Y}_{JM^{\prime}}^{\alpha}\left(\theta_{2},\phi_{2}\right)=\sum_{M}D_{MM^{\prime}}^{J}\left(\phi_{1},\theta_{1}-\theta_{2},-\phi_{2}\right)\mathbf{Y}_{JM}^{\alpha}\left(\theta_{1},\phi_{1}\right),
+\mathbf{Y}_{JM^{\prime}}^{\alpha}\left(\theta_{2},\phi_{2}\right)=\sum_{M}D_{MM^{\prime}}^{J}\left(R\right)\mathbf{Y}_{JM}^{\alpha}\left(\theta_{1},\phi_{1}\right).
 ```
 
-where ``D_{MM^{\prime}}^{J}`` are elements of the Wigner D-matrix. This relation holds for all the harmonics defined here. An important point to note here is that the new vector spherical harmonics ``\mathbf{Y}_{JM^{\prime}}^{\alpha}\left(\theta_{2},\phi_{2}\right)`` are computed about the rotated set of axes ``S_2``, whereas ``\mathbf{Y}_{JM}^{\alpha}\left(\theta_{1},\phi_{1}\right)`` are evaluated about ``S_1``. A similar relation may be obtained for the `Polar` and `HelicityCovariant` components of vector spherical harmonics.
+where ``D_{MM^{\prime}}^{J}`` are elements of the Wigner D-matrix. This relation holds for all the harmonics defined here. An important point to note here is that the new vector spherical harmonics ``\mathbf{Y}_{JM^{\prime}}^{\alpha}\left(\theta_{2},\phi_{2}\right)`` are computed about the rotated set of axes ``S_2``, whereas ``\mathbf{Y}_{JM}^{\alpha}\left(\theta_{1},\phi_{1}\right)`` are evaluated about ``S_1``.
 
 !!! note
-    This relation does not hold for the `Cartesian` and `SphericalCovariant` components of the vector harmonics, as the axes of ``S_1`` and ``S_2`` are oriented differently in space.
+    This relation does not hold for components of the vector harmonics, as the axes of ``S_1`` and ``S_2`` are oriented differently in space. The components may be computed by accounting for the rotation of the axes.
+    ```math
+    \left[\mathbf{Y}_{JM^{\prime}}^{\alpha}\left(\theta_{2},\phi_{2}\right)\right]^{\nu}=A_{\nu\mu}^{\dagger}\left(\theta_{2},\phi_{2},\theta_{1},\phi_{1}\right)\sum_{M}D_{MM^{\prime}}^{J}\left(R\right)\left[\mathbf{Y}_{JM}^{\alpha}\left(\theta_{1},\phi_{1}\right)\right]^{\mu},
+    ```
+    where
+    ``
+    A_{\mu\nu}=\left\langle \mathbf{e}^{1}_{\mu},\mathbf{e}_{\nu}^{2}\right\rangle
+    ``
+    is the matrix of the inner products of the unit vectors in the two frames, which may be related to the Cartesian rotation matrix ``R`` through
+    ``
+    A = U R U^\dagger,
+    ``
+    where ``U`` is the matrix that transforms the components from the Cartesian basis to the one chosen.
 
 # Index
 
