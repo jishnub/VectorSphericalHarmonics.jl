@@ -537,11 +537,11 @@ end
                 for l in 0:lmax, m in -l:l
                     Y = vshbasis(PB(), HelicityCovariant(), l, m, θ, ϕ, S)
                     G = genspharm(l, m, θ, ϕ, S)
-                    @test G2[(l,m)] == G
+                    @test isapproxdefault(G2[(l,m)], G)
                     nmax = min(1, l)
                     for n in -nmax:nmax
                         Ylmn = genspharm2(l, m, n, θ, ϕ)
-                        @test Y[n,n] == G[n]
+                        @test isapproxdefault(Y[n,n], G[n])
                         @test isapproxdefault(G[n], Ylmn)
                     end
                 end

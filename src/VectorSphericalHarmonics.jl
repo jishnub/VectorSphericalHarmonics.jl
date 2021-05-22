@@ -293,6 +293,8 @@ function _vshbasis(::Irreducible, B::Basis, j, m, θ, ϕ, S::SHCache)
     C * Y
 end
 
+_neg1pow(m) = isodd(m) ? -1 : 1
+
 """
     vshbasis(Y::AbstractVSH, B::Basis, modes::Union{SphericalHarmonicModes.LM, SphericalHarmonicModes.ML}, θ, ϕ, [S = maximum(SphericalHarmonicModes.l_range(modes))])
 
@@ -356,13 +358,24 @@ in the [`HelicityCovariant`](@ref) basis for all modes `(j,m)` in `modes`.
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
 """
 function genspharm(modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
-    v = [genspharm(j, m, θ, ϕ, S) for (j,m) in modes]
+    el = genspharm(first(modes)..., θ, ϕ, S)
+    el_zero = oftype(el, zero(el))
+    v = [copy(el_zero) for i in 1:length(modes)]
+    genspharm!(v, modes, θ, ϕ, S)
+    # v = [genspharm(j, m, θ, ϕ, S) for (j,m) in modes]
     SHArray(v, modes)
 end
 
 function genspharm!(A::AbstractVector, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
     for (ind, (j,m)) in zip(eachindex(A), modes)
-        A[ind] = genspharm(j, m, θ, ϕ, S)
+        if (j,-m) in modes && modeindex(modes, j, -m) < ind
+            Y = A[modeindex(modes, j, -m)]
+            # phase factor of (-1)^(m + n) corresponding to Y^n_{jm}
+            phase = SVector{3,Int}(-1,1,-1) * _neg1pow(m)
+            A[ind] = OffsetArray(conj.(reverse(parent(Y))) .* phase, -2)
+        else
+            A[ind] = genspharm(j, m, θ, ϕ, S)
+        end
     end
     return A
 end
