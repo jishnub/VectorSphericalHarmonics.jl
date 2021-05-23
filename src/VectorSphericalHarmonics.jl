@@ -294,10 +294,10 @@ end
 _neg1pow(m) = isodd(m) ? -1 : 1
 
 _zero(Y) = oftype(Y, zero(Y))
-_zero(Y::OffsetArray) = OffsetArray(oftype(parent(Y), zero(parent(Y))), Y.offsets)
+_zero(Y::OffsetArray) = OffsetArray(_zero(parent(Y)), axes(Y))
 
 _copy(A) = copy(A)
-_copy(A::OffsetArray) = OffsetArray(_copy(parent(A)), A.offsets)
+_copy(A::OffsetArray) = OffsetArray(_copy(parent(A)), axes(A))
 _copy(D::Diagonal) = Diagonal(_copy(diag(D)))
 
 """
