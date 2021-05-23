@@ -87,8 +87,10 @@ The cutoff `jmax` corresponds to the maximum degree of vector harmonics that we 
 The type `T` sets the precision used to evaluate the harmonics.
 The spherical harmonics evaluated will be of type `Complex{T}`.
 """
+cache(jmax) = cache(Float64, jmax)
+cache(T, jmax) = SHCache(SphericalHarmonics.cache(T, jmax + 1))
 cache(θ, ϕ, jmax) = cache(Float64, θ, ϕ, jmax)
-function cache(::Type{T}, θ, ϕ, jmax) where {T}
+function cache(T, θ, ϕ, jmax)
     S = SphericalHarmonics.cache(T, jmax + 1)
     shcache!(S, θ, ϕ)
     return SHCache(S)
@@ -117,27 +119,43 @@ getY(S::SHCache) = getY(S.S)
 eltypeY(S::SHCache) = eltypeY(S.S)
 eltypeP(S::SHCache) = eltypeP(S.S)
 
-struct VSHCache{M, YT, SHC <: SHCache}
-    Y :: YT
+struct VSHCache{VSHVEC, SHC <: SHCache}
+    Y :: VSHVEC
     S :: SHC
-
-    VSHCache{M}(Y, S::SHCache) where {M} = new{M,typeof(Y),typeof(S)}(Y, S)
 end
 
-eltypeY(V::VSHCache{<:Any,YT}) where {YT} = eltype(YT)
+eltypeY(V::VSHCache{VSHVEC}) where {VSHVEC} = eltype(VSHVEC)
 getY(V::VSHCache) = V.Y
+_modes(V::VSHCache) = only(SphericalHarmonicArrays.shmodes(getY(V)))
 
-function VSHCache(T::Type, YT, B, θ, ϕ, modes::M) where {M<:Union{ML,LM}}
-    jmax = maximum(l_range(modes))
-    S = cache(T, θ, ϕ, jmax)
-    Y = vshbasis(YT, B, modes, θ, ϕ, S)
-    VSHCache{M}(Y, S)
+function VSHCache(T::Type, YT::AbstractVSH, B::Basis, θ, ϕ, modes::Union{ML,LM})
+    V = VSHCache(T, YT, B, modes)
+    vshbasis!(V, YT, B, modes, θ, ϕ)
+    return V
 end
-function VSHCache(T::Type, θ, ϕ, modes::M) where {M<:Union{LM, ML}}
+function VSHCache(T::Type, θ, ϕ, modes::Union{LM, ML})
+    V = VSHCache(T, modes)
+    genspharm!(V, modes, θ, ϕ)
+    return V
+end
+
+function VSHCache(T::Type, YT::AbstractVSH, B::Basis, modes::Union{ML,LM})
     jmax = maximum(l_range(modes))
-    S = cache(T, θ, ϕ, jmax)
-    Y = genspharm(modes, θ, ϕ, S)
-    VSHCache{M}(Y, S)
+    S = cache(T, jmax)
+    el = vshbasis(YT, B, first(modes)..., 0.0, 0.0, S)
+    el_zero = _zero(el)
+    v = [_copy(el_zero) for i in 1:length(modes)]
+    Y = SHArray(v, modes)
+    VSHCache(Y, S)
+end
+function VSHCache(T::Type, modes::Union{LM, ML})
+    jmax = maximum(l_range(modes))
+    S = cache(T, jmax)
+    el = genspharm(first(modes)..., 0.0, 0.0, S)
+    el_zero = _zero(el)
+    v = [_copy(el_zero) for i in 1:length(modes)]
+    Y = SHArray(v, modes)
+    VSHCache(Y, S)
 end
 
 _maybewrapoffset(v, ::Union{Cartesian, Polar}) = v
@@ -365,16 +383,17 @@ function vshbasis!(A::AbstractVector, YT::AbstractVSH, B::Basis, modes::Union{ML
     return A
 end
 
-function vshbasis!(V::VSHCache, Y::AbstractVSH, B::Basis, θ, ϕ)
-    modes = first(SphericalHarmonicArrays.modes(getY(V)))
-    vshbasis!(V, Y, B, modes, θ, ϕ)
+function vshbasis!(V::VSHCache, YT::AbstractVSH, B::Basis, θ, ϕ)
+    vshbasis!(V, YT, B, _modes(V), θ, ϕ)
     return getY(V)
 end
 
-function vshbasis!(V::VSHCache{M}, Y::AbstractVSH, B::Basis, modes::Union{LM, ML}, θ, ϕ) where {M}
+function vshbasis!(V::VSHCache, YT::AbstractVSH, B::Basis, modes::Union{LM, ML}, θ, ϕ)
     cache!(V.S, θ, ϕ, maximum(l_range(modes)))
-    vshbasis!(parent(getY(V)), Y, B, convert(M, modes), θ, ϕ, V.S)
-    return getY(V)
+    modes_Vorder = SphericalHarmonicModes.ofordering(_modes(V), modes)
+    Y = getY(V)
+    vshbasis!(parent(Y), YT, B, modes_Vorder, θ, ϕ, V.S)
+    return Y
 end
 
 """
@@ -428,14 +447,14 @@ function genspharm!(A::AbstractVector, modes::Union{ML,LM}, θ, ϕ, S::SHCache =
 end
 
 function genspharm!(V::VSHCache, θ, ϕ)
-    modes = first(SphericalHarmonicArrays.modes(getY(V)))
-    genspharm!(V, modes, θ, ϕ)
+    genspharm!(V, _modes(V), θ, ϕ)
     return getY(V)
 end
 
-function genspharm!(V::VSHCache{M}, modes::Union{LM, ML}, θ, ϕ) where {M}
+function genspharm!(V::VSHCache, modes::Union{LM, ML}, θ, ϕ)
     cache!(V.S, θ, ϕ, maximum(l_range(modes)))
-    genspharm!(parent(getY(V)), convert(M, modes), θ, ϕ, V.S)
+    modes_Vorder = SphericalHarmonicModes.ofordering(_modes(V), modes)
+    genspharm!(parent(getY(V)), modes_Vorder, θ, ϕ, V.S)
     return getY(V)
 end
 
