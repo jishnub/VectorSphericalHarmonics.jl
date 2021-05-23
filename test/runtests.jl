@@ -30,7 +30,7 @@ function genspharm2(l, m, n, θ, ϕ)
     √((2l+1)/4π) * WignerD.wignerdjmn(l, m, n, θ) * cis(m * ϕ)
 end
 
-const S = cache(0, 0, 10);
+const S = cache(10);
 const Ylm = getY(S);
 
 @testset "Basis" begin
@@ -88,13 +88,23 @@ const Ylm = getY(S);
     end
 end
 
+@testset "cache" begin
+    S = @inferred cache(Float64, 1)
+    cache!(S, pi/3, pi/4)
+    @test getY(S) == getY(cache(Float64, pi/3, pi/4, 1))
+
+    S = @inferred cache(1)
+    cache!(S, pi/3, pi/4)
+    @test getY(S) == getY(cache(Float64, pi/3, pi/4, 1))
+end
+
 @testset "VSH orientations" begin
     θ1, ϕ1 = pi/3, pi/3;
     θNP, ϕNP = 0, 0;
     @testset "PB" begin
         @testset "HelicityCovariant" begin
             cache!(S, θ1, ϕ1, 0)
-            Y = vshbasis(PB(), HelicityCovariant(), 0, 0, θ1, ϕ1, S)
+            Y = @inferred vshbasis(PB(), HelicityCovariant(), 0, 0, θ1, ϕ1, S)
             # for l=0 there is only one non-zero vector Ylm0, which is radial
             for n in axes(Y,2), basisind in axes(Y,1)
                 if !(n == 0 && basisind == 0 #= e₀′ (radial) component =#)
@@ -104,7 +114,7 @@ end
         end
         @testset "Polar" begin
             cache!(S, θ1, ϕ1, 0)
-            Y = vshbasis(PB(), Polar(), 0, 0, θ1, ϕ1, S)
+            Y = @inferred vshbasis(PB(), Polar(), 0, 0, θ1, ϕ1, S)
             # for l=0 there is only one non-zero vector Ylm0, which is radial
             for n in axes(Y,2), basisind in axes(Y,1)
                 if !(n == 0 && basisind == 1 #= radial component =#)
@@ -115,7 +125,7 @@ end
         @testset "SphericalCovariant" begin
             # north pole
             cache!(S, θNP, ϕNP, 0)
-            Y = vshbasis(PB(), SphericalCovariant(), 0, 0, θNP, ϕNP, S)
+            Y = @inferred vshbasis(PB(), SphericalCovariant(), 0, 0, θNP, ϕNP, S)
             # for l=0 there is only one non-zero vector Ylm0, which is radial
             # at north pole r̂ == ẑ. so there is only one non-zero component of Ylm0
             for n in axes(Y,2), basisind in axes(Y,1)
@@ -127,7 +137,7 @@ end
         @testset "Cartesian" begin
             # north pole
             cache!(S, θNP, ϕNP, 0)
-            Y = vshbasis(PB(), Cartesian(), 0, 0, θNP, ϕNP, S)
+            Y = @inferred vshbasis(PB(), Cartesian(), 0, 0, θNP, ϕNP, S)
             # for l=0 there is only one non-zero vector Ylm0, which is radial
             # at north pole r̂ == ẑ. so there is only one non-zero component of Ylm0
             for n in axes(Y,2), basisind in axes(Y,1)
@@ -140,7 +150,7 @@ end
     @testset "Hansen" begin
         @testset "HelicityCovariant" begin
             cache!(S, θ1, ϕ1, 0)
-            Y = vshbasis(Hansen(), HelicityCovariant(), 0, 0, θ1, ϕ1, S)
+            Y = @inferred vshbasis(Hansen(), HelicityCovariant(), 0, 0, θ1, ϕ1, S)
             # for l=0 there is only one non-zero vector Ylm⁽⁻¹⁾, which is radial
             for n in axes(Y,2), basisind in axes(Y,1)
                 if !(n == -1 && basisind == 0 #= e₀′ (radial) component =#)
@@ -150,7 +160,7 @@ end
         end
         @testset "Polar" begin
             cache!(S, θ1, ϕ1, 0)
-            Y = vshbasis(Hansen(), Polar(), 0, 0, θ1, ϕ1, S)
+            Y = @inferred vshbasis(Hansen(), Polar(), 0, 0, θ1, ϕ1, S)
             # for l=0 there is only one non-zero vector Ylm⁽⁻¹⁾, which is radial
             for n in axes(Y,2), basisind in axes(Y,1)
                 if !(n == -1 && basisind == 1 #= radial component =#)
@@ -161,7 +171,7 @@ end
         @testset "SphericalCovariant" begin
             # north pole
             cache!(S, θNP, ϕNP, 0)
-            Y = vshbasis(Hansen(), SphericalCovariant(), 0, 0, θNP, ϕNP, S)
+            Y = @inferred vshbasis(Hansen(), SphericalCovariant(), 0, 0, θNP, ϕNP, S)
             # for l=0 there is only one non-zero vector Ylm⁽⁻¹⁾, which is radial
             # at north pole r̂ == ẑ. so there is only one non-zero component of Ylm0
             for n in axes(Y,2), basisind in axes(Y,1)
@@ -173,7 +183,7 @@ end
         @testset "Cartesian" begin
             # north pole
             cache!(S, θNP, ϕNP, 0)
-            Y = vshbasis(Hansen(), Cartesian(), 0, 0, θNP, ϕNP, S)
+            Y = @inferred vshbasis(Hansen(), Cartesian(), 0, 0, θNP, ϕNP, S)
             # for l=0 there is only one non-zero vector Ylm⁽⁻¹⁾⁾, which is radial
             # at north pole r̂ == ẑ. so there is only one non-zero component of Ylm0
             for n in axes(Y,2), basisind in axes(Y,1)
@@ -185,20 +195,20 @@ end
     end
     @testset "Irreducible" begin
         cache!(S, θ1, ϕ1, 0)
-        Y = vshbasis(Irreducible(), Polar(), 0, 0, θ1, ϕ1, S)
+        Y = @inferred vshbasis(Irreducible(), Polar(), 0, 0, θ1, ϕ1, S)
         @test all(iszero, Y[:, -1:0])
         @test all(x -> isapproxdefault(x, 0), Y[2:3, 1])
         @test Y[1, 1] ≈ -1/√(4pi)
 
         for m = -1:1
-            Y = vshbasis(Irreducible(), SphericalCovariant(), 1, m, θ1, ϕ1, S)
+            Y = @inferred vshbasis(Irreducible(), SphericalCovariant(), 1, m, θ1, ϕ1, S)
             @test Y[m, 0] ≈ 1/√(4pi)
             @test all(iszero, Y[-1:m-1, 0])
             @test all(iszero, Y[m+1:1, 0])
         end
 
         cache!(S, θNP, ϕNP, 0)
-        Y = vshbasis(Irreducible(), Cartesian(), 0, 0, θNP, ϕNP, S)
+        Y = @inferred vshbasis(Irreducible(), Cartesian(), 0, 0, θNP, ϕNP, S)
         @test all(iszero, Y[:, -1:0])
         @test all(iszero, Y[1:2, 1])
         @test Y[3, 1] ≈ -1/√(4pi)
@@ -1061,7 +1071,7 @@ end
     θ1, ϕ1 = pi/3, pi/2
     θ2, ϕ2 = pi/4, pi/6
     @testset "vshbasis!" begin
-        V = VectorSphericalHarmonics.VSHCache(Float64, Irreducible(), Polar(), θ1, ϕ1, modes);
+        V = @inferred VectorSphericalHarmonics.VSHCache(Float64, Irreducible(), Polar(), θ1, ϕ1, modes);
         M = vshbasis(Irreducible(), Polar(), modes, θ1, ϕ1)
         @test getY(V) == M
         @test eltypeY(V) == eltype(getY(V))
@@ -1071,7 +1081,7 @@ end
         @test getY(V) == M
     end
     @testset "genspharm!" begin
-        V = VectorSphericalHarmonics.VSHCache(Float64, θ1, ϕ1, modes);
+        V = @inferred VectorSphericalHarmonics.VSHCache(Float64, θ1, ϕ1, modes);
         M = genspharm(modes, θ1, ϕ1)
         @test getY(V) == M
 

@@ -87,8 +87,10 @@ The cutoff `jmax` corresponds to the maximum degree of vector harmonics that we 
 The type `T` sets the precision used to evaluate the harmonics.
 The spherical harmonics evaluated will be of type `Complex{T}`.
 """
+cache(jmax) = cache(Float64, jmax)
+cache(T, jmax) = SHCache(SphericalHarmonics.cache(T, jmax + 1))
 cache(θ, ϕ, jmax) = cache(Float64, θ, ϕ, jmax)
-function cache(::Type{T}, θ, ϕ, jmax) where {T}
+function cache(T, θ, ϕ, jmax)
     S = SphericalHarmonics.cache(T, jmax + 1)
     shcache!(S, θ, ϕ)
     return SHCache(S)
@@ -117,25 +119,42 @@ getY(S::SHCache) = getY(S.S)
 eltypeY(S::SHCache) = eltypeY(S.S)
 eltypeP(S::SHCache) = eltypeP(S.S)
 
-struct VSHCache{YT, SHC <: SHCache}
-    Y :: YT
+struct VSHCache{VSHVEC, SHC <: SHCache}
+    Y :: VSHVEC
     S :: SHC
 end
 
-eltypeY(V::VSHCache{YT}) where {YT} = eltype(YT)
+eltypeY(V::VSHCache{VSHVEC}) where {VSHVEC} = eltype(VSHVEC)
 getY(V::VSHCache) = V.Y
 _modes(V::VSHCache) = only(SphericalHarmonicArrays.shmodes(getY(V)))
 
-function VSHCache(T::Type, YT, B, θ, ϕ, modes::Union{ML,LM})
-    jmax = maximum(l_range(modes))
-    S = cache(T, θ, ϕ, jmax)
-    Y = vshbasis(YT, B, modes, θ, ϕ, S)
-    VSHCache(Y, S)
+function VSHCache(T::Type, YT::AbstractVSH, B::Basis, θ, ϕ, modes::Union{ML,LM})
+    V = VSHCache(T, YT, B, modes)
+    vshbasis!(V, YT, B, modes, θ, ϕ)
+    return V
 end
 function VSHCache(T::Type, θ, ϕ, modes::Union{LM, ML})
+    V = VSHCache(T, modes)
+    genspharm!(V, modes, θ, ϕ)
+    return V
+end
+
+function VSHCache(T::Type, YT::AbstractVSH, B::Basis, modes::Union{ML,LM})
     jmax = maximum(l_range(modes))
-    S = cache(T, θ, ϕ, jmax)
-    Y = genspharm(modes, θ, ϕ, S)
+    S = cache(T, jmax)
+    el = vshbasis(YT, B, first(modes)..., 0.0, 0.0, S)
+    el_zero = _zero(el)
+    v = [_copy(el_zero) for i in 1:length(modes)]
+    Y = SHArray(v, modes)
+    VSHCache(Y, S)
+end
+function VSHCache(T::Type, modes::Union{LM, ML})
+    jmax = maximum(l_range(modes))
+    S = cache(T, jmax)
+    el = genspharm(first(modes)..., 0.0, 0.0, S)
+    el_zero = _zero(el)
+    v = [_copy(el_zero) for i in 1:length(modes)]
+    Y = SHArray(v, modes)
     VSHCache(Y, S)
 end
 
