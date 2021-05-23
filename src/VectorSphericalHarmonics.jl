@@ -117,27 +117,26 @@ getY(S::SHCache) = getY(S.S)
 eltypeY(S::SHCache) = eltypeY(S.S)
 eltypeP(S::SHCache) = eltypeP(S.S)
 
-struct VSHCache{M, YT, SHC <: SHCache}
+struct VSHCache{YT, SHC <: SHCache}
     Y :: YT
     S :: SHC
-
-    VSHCache{M}(Y, S::SHCache) where {M} = new{M,typeof(Y),typeof(S)}(Y, S)
 end
 
-eltypeY(V::VSHCache{<:Any,YT}) where {YT} = eltype(YT)
+eltypeY(V::VSHCache{YT}) where {YT} = eltype(YT)
 getY(V::VSHCache) = V.Y
+_modes(V::VSHCache) = only(SphericalHarmonicArrays.shmodes(getY(V)))
 
-function VSHCache(T::Type, YT, B, θ, ϕ, modes::M) where {M<:Union{ML,LM}}
+function VSHCache(T::Type, YT, B, θ, ϕ, modes::Union{ML,LM})
     jmax = maximum(l_range(modes))
     S = cache(T, θ, ϕ, jmax)
     Y = vshbasis(YT, B, modes, θ, ϕ, S)
-    VSHCache{M}(Y, S)
+    VSHCache(Y, S)
 end
-function VSHCache(T::Type, θ, ϕ, modes::M) where {M<:Union{LM, ML}}
+function VSHCache(T::Type, θ, ϕ, modes::Union{LM, ML})
     jmax = maximum(l_range(modes))
     S = cache(T, θ, ϕ, jmax)
     Y = genspharm(modes, θ, ϕ, S)
-    VSHCache{M}(Y, S)
+    VSHCache(Y, S)
 end
 
 _maybewrapoffset(v, ::Union{Cartesian, Polar}) = v
@@ -365,16 +364,17 @@ function vshbasis!(A::AbstractVector, YT::AbstractVSH, B::Basis, modes::Union{ML
     return A
 end
 
-function vshbasis!(V::VSHCache, Y::AbstractVSH, B::Basis, θ, ϕ)
-    modes = first(SphericalHarmonicArrays.modes(getY(V)))
-    vshbasis!(V, Y, B, modes, θ, ϕ)
+function vshbasis!(V::VSHCache, YT::AbstractVSH, B::Basis, θ, ϕ)
+    vshbasis!(V, YT, B, _modes(V), θ, ϕ)
     return getY(V)
 end
 
-function vshbasis!(V::VSHCache{M}, Y::AbstractVSH, B::Basis, modes::Union{LM, ML}, θ, ϕ) where {M}
+function vshbasis!(V::VSHCache, YT::AbstractVSH, B::Basis, modes::Union{LM, ML}, θ, ϕ)
     cache!(V.S, θ, ϕ, maximum(l_range(modes)))
-    vshbasis!(parent(getY(V)), Y, B, convert(M, modes), θ, ϕ, V.S)
-    return getY(V)
+    modes_Vorder = SphericalHarmonicModes.ofordering(_modes(V), modes)
+    Y = getY(V)
+    vshbasis!(parent(Y), YT, B, modes_Vorder, θ, ϕ, V.S)
+    return Y
 end
 
 """
@@ -428,14 +428,14 @@ function genspharm!(A::AbstractVector, modes::Union{ML,LM}, θ, ϕ, S::SHCache =
 end
 
 function genspharm!(V::VSHCache, θ, ϕ)
-    modes = first(SphericalHarmonicArrays.modes(getY(V)))
-    genspharm!(V, modes, θ, ϕ)
+    genspharm!(V, _modes(V), θ, ϕ)
     return getY(V)
 end
 
-function genspharm!(V::VSHCache{M}, modes::Union{LM, ML}, θ, ϕ) where {M}
+function genspharm!(V::VSHCache, modes::Union{LM, ML}, θ, ϕ)
     cache!(V.S, θ, ϕ, maximum(l_range(modes)))
-    genspharm!(parent(getY(V)), convert(M, modes), θ, ϕ, V.S)
+    modes_Vorder = SphericalHarmonicModes.ofordering(_modes(V), modes)
+    genspharm!(parent(getY(V)), modes_Vorder, θ, ϕ, V.S)
     return getY(V)
 end
 
