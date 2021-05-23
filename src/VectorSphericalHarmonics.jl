@@ -127,10 +127,10 @@ end
 eltypeY(V::VSHCache{<:Any,YT}) where {YT} = eltype(YT)
 getY(V::VSHCache) = V.Y
 
-function VSHCache(T::Type, Y, B, θ, ϕ, modes::M) where {M<:Union{ML,LM}}
+function VSHCache(T::Type, YT, B, θ, ϕ, modes::M) where {M<:Union{ML,LM}}
     jmax = maximum(l_range(modes))
     S = cache(T, θ, ϕ, jmax)
-    Y = vshbasis(Y, B, modes, θ, ϕ, S)
+    Y = vshbasis(YT, B, modes, θ, ϕ, S)
     VSHCache{M}(Y, S)
 end
 function VSHCache(T::Type, θ, ϕ, modes::M) where {M<:Union{LM, ML}}
@@ -155,9 +155,7 @@ A pre-allocated array of scalar spherical harmonics `S` may be passed as the fin
 """
 function vshbasis(YT::AbstractVSH, B::Basis, j, m, n, θ, ϕ, S::SHCache = cache(θ, ϕ, j))
     Y = vshbasis(YT, B, j, m, θ, ϕ, S)
-    Yp = parent(Y)
-    ind2 = first(axes(Y,2))
-    vs = Yp[:, n - ind2 + 1]
+    vs = SVector{3}((Y[i, n] for i in UnitRange(axes(Y,1))))
     _maybewrapoffset(vs, B)
 end
 
@@ -293,6 +291,15 @@ function _vshbasis(::Irreducible, B::Basis, j, m, θ, ϕ, S::SHCache)
     C * Y
 end
 
+_neg1pow(m) = isodd(m) ? -1 : 1
+
+_zero(Y) = oftype(Y, zero(Y))
+_zero(Y::OffsetArray) = OffsetArray(_zero(parent(Y)), axes(Y))
+
+_copy(A) = copy(A)
+_copy(A::OffsetArray) = OffsetArray(_copy(parent(A)), axes(A))
+_copy(D::Diagonal) = Diagonal(_copy(diag(D)))
+
 """
     vshbasis(Y::AbstractVSH, B::Basis, modes::Union{SphericalHarmonicModes.LM, SphericalHarmonicModes.ML}, θ, ϕ, [S = maximum(SphericalHarmonicModes.l_range(modes))])
 
@@ -301,12 +308,59 @@ for all `(j,m)` in `modes`, and return their components in the basis `B`.
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
 """
 function vshbasis(Y::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
-    v = [vshbasis(Y, B, j, m, θ, ϕ, S) for (j,m) in modes]
+    el = vshbasis(Y, B, first(modes)..., θ, ϕ, S)
+    el_zero = _zero(el)
+    v = [_copy(el_zero) for i in 1:length(modes)]
+    vshbasis!(v, Y, B, modes, θ, ϕ, S)
     SHArray(v, modes)
 end
-function vshbasis!(A::AbstractVector, Y::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
+
+_commonphase(::Irreducible, j, m) = _neg1pow(j + m + 1)
+_commonphase(::Hansen, j, m) = _neg1pow(m + 1)
+_commonphase(::PB, j, m) = _neg1pow(m)
+
+_maybereversebasis(Y, YT, ::Union{Cartesian, Polar}, YM) = Y
+_maybereversebasis(Y, YT, ::Union{SphericalCovariant, HelicityCovariant}, YM) = oftype(Y, _reverse!(Y, YM, dims = 1))
+_maybereversebasis(Y, ::PB, ::Union{Cartesian, Polar}, YM) = oftype(Y, _reverse!(Y, YM, dims = 2))
+_maybereversebasis(Y, ::PB, ::Union{SphericalCovariant, HelicityCovariant}, YM) = oftype(Y, _reverse!(Y, YM))
+_maybereversebasis(Y::Diagonal, ::PB, ::HelicityCovariant, YM) = Diagonal(oftype(parent(Y), _reverse!(parent(Y), parent(YM))))
+
+# Elaborate scheme to work around the fact that StaticArrays don't have an efficient reverse defined in general
+# This workaround might not be necessary after https://github.com/JuliaArrays/StaticArrays.jl/pull/910 is merged
+function _reverse!(Y, YM; dims = :)
+    copyto!(YM, Y)
+    reverse!(YM, dims = dims)
+    return YM
+end
+_reverse!(Y::AbstractVector, YM::AbstractVector) = reverse(Y)
+
+_basisconjphase(::Union{SphericalCovariant, HelicityCovariant}) = SVector{3}(-1,1,-1)
+_basisconjphase(::Any) = 1
+
+function _vectorindsphase(::Union{Irreducible, Hansen}, Y)
+    ax = SVector{3}(axes(Y,2)...)
+    map(_neg1pow, ax)'
+end
+_vectorindsphase(::Any, Y) = 1
+
+_multiplyphase(A, B) = A .* B
+_multiplyphase(A::Diagonal{<:Any, <:SVector}, B) = Diagonal(SMatrix{3,3}(A) .* B)
+
+function _conjphase(YT, B, Y, j, m, scratchM = Y)
+    phase = _basisconjphase(B) .* _vectorindsphase(YT, Y) * _commonphase(YT, j, m)
+    Y2 =  _multiplyphase(_maybereversebasis(conj(parent(Y)), YT, B, scratchM), phase)
+    OffsetArray(Y2, axes(Y))
+end
+
+function vshbasis!(A::AbstractVector, YT::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
+    scratchM = similar(parent(first(A)))
     for (ind, (j,m)) in zip(eachindex(A), modes)
-        A[ind] = vshbasis(Y, B, j, m, θ, ϕ, S)
+        if (j,-m) in modes && modeindex(modes, j, -m) < ind
+            Y1 = A[modeindex(modes, j, -m)]
+            A[ind] = _conjphase(YT, B, Y1, j, m, scratchM)
+        else
+            A[ind] = vshbasis(YT, B, j, m, θ, ϕ, S)
+        end
     end
     return A
 end
@@ -317,12 +371,10 @@ function vshbasis!(V::VSHCache, Y::AbstractVSH, B::Basis, θ, ϕ)
     return getY(V)
 end
 
-for M in [:LM, :ML]
-    @eval function vshbasis!(V::VSHCache{<:$M}, Y::AbstractVSH, B::Basis, modes::$M, θ, ϕ)
-        cache!(V.S, θ, ϕ, maximum(l_range(modes)))
-        vshbasis!(parent(getY(V)), Y, B, modes, θ, ϕ, V.S)
-        return getY(V)
-    end
+function vshbasis!(V::VSHCache{M}, Y::AbstractVSH, B::Basis, modes::Union{LM, ML}, θ, ϕ) where {M}
+    cache!(V.S, θ, ϕ, maximum(l_range(modes)))
+    vshbasis!(parent(getY(V)), Y, B, convert(M, modes), θ, ϕ, V.S)
+    return getY(V)
 end
 
 """
@@ -356,13 +408,21 @@ in the [`HelicityCovariant`](@ref) basis for all modes `(j,m)` in `modes`.
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
 """
 function genspharm(modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
-    v = [genspharm(j, m, θ, ϕ, S) for (j,m) in modes]
+    el = genspharm(first(modes)..., θ, ϕ, S)
+    el_zero = _zero(el)
+    v = [_copy(el_zero) for i in 1:length(modes)]
+    genspharm!(v, modes, θ, ϕ, S)
     SHArray(v, modes)
 end
 
 function genspharm!(A::AbstractVector, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
     for (ind, (j,m)) in zip(eachindex(A), modes)
-        A[ind] = genspharm(j, m, θ, ϕ, S)
+        if (j,-m) in modes && modeindex(modes, j, -m) < ind
+            Y = A[modeindex(modes, j, -m)]
+            A[ind] = _conjphase(PB(), HelicityCovariant(), Y, j, m)
+        else
+            A[ind] = genspharm(j, m, θ, ϕ, S)
+        end
     end
     return A
 end
@@ -373,12 +433,10 @@ function genspharm!(V::VSHCache, θ, ϕ)
     return getY(V)
 end
 
-for M in [:LM, :ML]
-    @eval function genspharm!(V::VSHCache{<:$M}, modes::$M, θ, ϕ)
-        cache!(V.S, θ, ϕ, maximum(l_range(modes)))
-        genspharm!(parent(getY(V)), modes, θ, ϕ, V.S)
-        return getY(V)
-    end
+function genspharm!(V::VSHCache{M}, modes::Union{LM, ML}, θ, ϕ) where {M}
+    cache!(V.S, θ, ϕ, maximum(l_range(modes)))
+    genspharm!(parent(getY(V)), convert(M, modes), θ, ϕ, V.S)
+    return getY(V)
 end
 
 end
