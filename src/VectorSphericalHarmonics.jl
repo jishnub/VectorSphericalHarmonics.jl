@@ -296,6 +296,10 @@ _neg1pow(m) = isodd(m) ? -1 : 1
 _zero(Y) = oftype(Y, zero(Y))
 _zero(Y::OffsetArray) = OffsetArray(oftype(parent(Y), zero(parent(Y))), Y.offsets)
 
+_copy(A) = copy(A)
+_copy(A::OffsetArray) = OffsetArray(_copy(parent(A)), A.offsets)
+_copy(D::Diagonal) = Diagonal(_copy(diag(D)))
+
 """
     vshbasis(Y::AbstractVSH, B::Basis, modes::Union{SphericalHarmonicModes.LM, SphericalHarmonicModes.ML}, θ, ϕ, [S = maximum(SphericalHarmonicModes.l_range(modes))])
 
@@ -305,7 +309,8 @@ A pre-allocated array of scalar spherical harmonics `S` may be passed as the fin
 """
 function vshbasis(Y::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
     el = vshbasis(Y, B, first(modes)..., θ, ϕ, S)
-    v = [_zero(el) for i in 1:length(modes)]
+    el_zero = _zero(el)
+    v = [_copy(el_zero) for i in 1:length(modes)]
     vshbasis!(v, Y, B, modes, θ, ϕ, S)
     SHArray(v, modes)
 end
@@ -314,11 +319,26 @@ _commonphase(::Irreducible, j, m) = _neg1pow(j + m + 1)
 _commonphase(::Hansen, j, m) = _neg1pow(m + 1)
 _commonphase(::PB, j, m) = _neg1pow(m)
 
-_maybereversebasis(Y, YT, ::Union{Cartesian, Polar}) = Y
-_maybereversebasis(Y, YT, ::Union{SphericalCovariant, HelicityCovariant}) = oftype(Y, reverse(Y, dims = 1))
-_maybereversebasis(Y, ::PB, ::Union{Cartesian, Polar}) = oftype(Y, reverse(Y, dims = 2))
-_maybereversebasis(Y, ::PB, ::Union{SphericalCovariant, HelicityCovariant}) = oftype(Y, reverse(Y))
-_maybereversebasis(Y::Diagonal, ::PB, ::HelicityCovariant) = Diagonal(oftype(parent(Y), reverse(parent(Y))))
+_maybereversebasis(Y, YT, ::Union{Cartesian, Polar}, YM) = Y
+_maybereversebasis(Y, YT, ::Union{SphericalCovariant, HelicityCovariant}, YM) = oftype(Y, _reverse!(Y, YM, 1))
+_maybereversebasis(Y, ::PB, ::Union{Cartesian, Polar}, YM) = oftype(Y, _reverse!(Y, YM, 2))
+_maybereversebasis(Y, ::PB, ::Union{SphericalCovariant, HelicityCovariant}, YM) = oftype(Y, _reverse!(Y, YM))
+_maybereversebasis(Y::Diagonal, ::PB, ::HelicityCovariant, YM) = Diagonal(oftype(parent(Y), _reverse!(parent(Y), parent(YM))))
+
+# Elaborate scheme to work around the fact that StaticArrays don't have an efficient reverse defined in general
+# This workaround might not be necessary after https://github.com/JuliaArrays/StaticArrays.jl/pull/910 is merged
+function _reverse!(Y, YM, dims::Integer)
+    YM .= Y
+    reverse!(YM, dims = dims)
+    return YM
+end
+_reverse!(Y::AbstractVector, YM::AbstractVector) = reverse(Y)
+function _reverse!(Y::AbstractMatrix, YM::AbstractMatrix)
+    YM .= Y
+    reverse!(YM, dims = 1)
+    reverse!(YM, dims = 2)
+    return YM
+end
 
 _basisconjphase(::Union{SphericalCovariant, HelicityCovariant}) = SVector{3}(-1,1,-1)
 _basisconjphase(::Any) = 1
@@ -332,17 +352,18 @@ _vectorindsphase(::Any, Y) = 1
 _multiplyphase(A, B) = A .* B
 _multiplyphase(A::Diagonal{<:Any, <:SVector}, B) = Diagonal(SMatrix{3,3}(A) .* B)
 
-function _conjphase(YT, B, Y, j, m)
+function _conjphase(YT, B, Y, j, m, scratchM = Y)
     phase = _basisconjphase(B) .* _vectorindsphase(YT, Y) * _commonphase(YT, j, m)
-    Y2 =  _multiplyphase(_maybereversebasis(conj(parent(Y)), YT, B), phase)
+    Y2 =  _multiplyphase(_maybereversebasis(conj(parent(Y)), YT, B, scratchM), phase)
     OffsetArray(Y2, axes(Y))
 end
 
 function vshbasis!(A::AbstractVector, YT::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
+    scratchM = similar(parent(first(A)))
     for (ind, (j,m)) in zip(eachindex(A), modes)
         if (j,-m) in modes && modeindex(modes, j, -m) < ind
             Y1 = A[modeindex(modes, j, -m)]
-            A[ind] = _conjphase(YT, B, Y1, j, m)
+            A[ind] = _conjphase(YT, B, Y1, j, m, scratchM)
         else
             A[ind] = vshbasis(YT, B, j, m, θ, ϕ, S)
         end
@@ -396,10 +417,9 @@ A pre-allocated array of scalar spherical harmonics `S` may be passed as the fin
 """
 function genspharm(modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
     el = genspharm(first(modes)..., θ, ϕ, S)
-    el_zero = oftype(el, zero(el))
-    v = [copy(el_zero) for i in 1:length(modes)]
+    el_zero = _zero(el)
+    v = [_copy(el_zero) for i in 1:length(modes)]
     genspharm!(v, modes, θ, ϕ, S)
-    # v = [genspharm(j, m, θ, ϕ, S) for (j,m) in modes]
     SHArray(v, modes)
 end
 
