@@ -295,6 +295,9 @@ end
 
 _neg1pow(m) = isodd(m) ? -1 : 1
 
+_zero(Y) = oftype(Y, zero(Y))
+_zero(Y::OffsetArray) = OffsetArray(oftype(parent(Y), zero(parent(Y))), Y.offsets)
+
 """
     vshbasis(Y::AbstractVSH, B::Basis, modes::Union{SphericalHarmonicModes.LM, SphericalHarmonicModes.ML}, θ, ϕ, [S = maximum(SphericalHarmonicModes.l_range(modes))])
 
@@ -303,12 +306,49 @@ for all `(j,m)` in `modes`, and return their components in the basis `B`.
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument.
 """
 function vshbasis(Y::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
-    v = [vshbasis(Y, B, j, m, θ, ϕ, S) for (j,m) in modes]
+    el = vshbasis(Y, B, first(modes)..., θ, ϕ, S)
+    v = [_zero(el) for i in 1:length(modes)]
+    vshbasis!(v, Y, B, modes, θ, ϕ, S)
     SHArray(v, modes)
 end
-function vshbasis!(A::AbstractVector, Y::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
+
+_commonphase(::Irreducible, j, m) = _neg1pow(j + m + 1)
+_commonphase(::Hansen, j, m) = _neg1pow(m + 1)
+_commonphase(::PB, j, m) = _neg1pow(m)
+
+_maybereversebasis(Y, YT, ::Union{Cartesian, Polar}) = Y
+_maybereversebasis(Y, YT, ::Union{SphericalCovariant, HelicityCovariant}) = oftype(Y, reverse(Y, dims = 1))
+_maybereversebasis(Y, ::PB, ::Union{Cartesian, Polar}) = oftype(Y, reverse(Y, dims = 2))
+_maybereversebasis(Y, ::PB, ::SphericalCovariant) = oftype(Y, reverse(Y))
+_maybereversebasis(Y, ::PB, ::HelicityCovariant) = Diagonal(oftype(parent(Y), reverse(parent(Y))))
+
+_basisconjphase(::Union{SphericalCovariant, HelicityCovariant}) = SVector{3}(-1,1,-1)
+_basisconjphase(::Any) = 1
+
+function _vectorindsphase(::Union{Irreducible, Hansen}, Y)
+    ax = SVector{3}(axes(Y,2)...)
+    map(_neg1pow, ax)'
+end
+_vectorindsphase(::Any, Y) = 1
+
+_multiplyphase(A, B) = A .* B
+_multiplyphase(A::Diagonal{<:Any, <:SVector}, B) = Diagonal(SMatrix{3,3}(A) .* B)
+
+function _conjphase(YT, B, Y, j, m)
+    overallphase = _commonphase(YT, j, m)
+    phase = _basisconjphase(B) .* _vectorindsphase(YT, Y) * overallphase
+    Y2 =  _multiplyphase(_maybereversebasis(conj(parent(Y)), YT, B), phase)
+    OffsetArray(Y2, axes(Y))
+end
+
+function vshbasis!(A::AbstractVector, YT::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
     for (ind, (j,m)) in zip(eachindex(A), modes)
-        A[ind] = vshbasis(Y, B, j, m, θ, ϕ, S)
+        if (j,-m) in modes && modeindex(modes, j, -m) < ind
+            Y1 = A[modeindex(modes, j, -m)]
+            A[ind] = _conjphase(YT, B, Y1, j, m)
+        else
+            A[ind] = vshbasis(YT, B, j, m, θ, ϕ, S)
+        end
     end
     return A
 end

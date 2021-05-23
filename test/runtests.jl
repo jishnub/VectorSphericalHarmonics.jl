@@ -550,6 +550,22 @@ end
     end
 end
 
+@testset "one vs multiple" begin
+    lmax = 2
+    modes = LM(0:lmax)
+    θ, ϕ = pi/3, pi/3
+    S = VectorSphericalHarmonics.cache(Float64, θ, ϕ, lmax)
+    for YT in [Irreducible(), PB(), Hansen()], B in [Cartesian(), Polar(), SphericalCovariant(), HelicityCovariant()]
+        @testset "$YT $B" begin
+            Y_multiple = vshbasis(YT, B, modes, θ, ϕ, S)
+            for (ind, (j, m)) in enumerate(modes)
+                Y = vshbasis(YT, B, j, m, θ, ϕ, S)
+                @test isapproxdefault(Y_multiple[ind], Y)
+            end
+        end
+    end
+end
+
 @testset "Orthogonal" begin
     lmax = 10
     @testset "Locally orthogonal" begin
@@ -883,7 +899,7 @@ end
 end
 
 @testset "Coordinate rotation" begin
-    lmax = 5
+    lmax = 3
     modes = ML(0:lmax)
 
     S = VectorSphericalHarmonics.cache(0, 0, lmax);
