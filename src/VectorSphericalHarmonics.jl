@@ -155,9 +155,7 @@ A pre-allocated array of scalar spherical harmonics `S` may be passed as the fin
 """
 function vshbasis(YT::AbstractVSH, B::Basis, j, m, n, θ, ϕ, S::SHCache = cache(θ, ϕ, j))
     Y = vshbasis(YT, B, j, m, θ, ϕ, S)
-    Yp = parent(Y)
-    ind2 = first(axes(Y,2))
-    vs = Yp[:, n - ind2 + 1]
+    vs = SVector{3}((Y[i, n] for i in UnitRange(axes(Y,1))))
     _maybewrapoffset(vs, B)
 end
 
@@ -319,8 +317,8 @@ _commonphase(::PB, j, m) = _neg1pow(m)
 _maybereversebasis(Y, YT, ::Union{Cartesian, Polar}) = Y
 _maybereversebasis(Y, YT, ::Union{SphericalCovariant, HelicityCovariant}) = oftype(Y, reverse(Y, dims = 1))
 _maybereversebasis(Y, ::PB, ::Union{Cartesian, Polar}) = oftype(Y, reverse(Y, dims = 2))
-_maybereversebasis(Y, ::PB, ::SphericalCovariant) = oftype(Y, reverse(Y))
-_maybereversebasis(Y, ::PB, ::HelicityCovariant) = Diagonal(oftype(parent(Y), reverse(parent(Y))))
+_maybereversebasis(Y, ::PB, ::Union{SphericalCovariant, HelicityCovariant}) = oftype(Y, reverse(Y))
+_maybereversebasis(Y::Diagonal, ::PB, ::HelicityCovariant) = Diagonal(oftype(parent(Y), reverse(parent(Y))))
 
 _basisconjphase(::Union{SphericalCovariant, HelicityCovariant}) = SVector{3}(-1,1,-1)
 _basisconjphase(::Any) = 1
@@ -335,8 +333,7 @@ _multiplyphase(A, B) = A .* B
 _multiplyphase(A::Diagonal{<:Any, <:SVector}, B) = Diagonal(SMatrix{3,3}(A) .* B)
 
 function _conjphase(YT, B, Y, j, m)
-    overallphase = _commonphase(YT, j, m)
-    phase = _basisconjphase(B) .* _vectorindsphase(YT, Y) * overallphase
+    phase = _basisconjphase(B) .* _vectorindsphase(YT, Y) * _commonphase(YT, j, m)
     Y2 =  _multiplyphase(_maybereversebasis(conj(parent(Y)), YT, B), phase)
     OffsetArray(Y2, axes(Y))
 end
@@ -410,9 +407,7 @@ function genspharm!(A::AbstractVector, modes::Union{ML,LM}, θ, ϕ, S::SHCache =
     for (ind, (j,m)) in zip(eachindex(A), modes)
         if (j,-m) in modes && modeindex(modes, j, -m) < ind
             Y = A[modeindex(modes, j, -m)]
-            # phase factor of (-1)^(m + n) corresponding to Y^n_{jm}
-            phase = SVector{3,Int}(-1,1,-1) * _neg1pow(m)
-            A[ind] = OffsetArray(conj.(reverse(parent(Y))) .* phase, -2)
+            A[ind] = _conjphase(PB(), HelicityCovariant(), Y, j, m)
         else
             A[ind] = genspharm(j, m, θ, ϕ, S)
         end
