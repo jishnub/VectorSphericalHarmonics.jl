@@ -127,10 +127,10 @@ end
 eltypeY(V::VSHCache{<:Any,YT}) where {YT} = eltype(YT)
 getY(V::VSHCache) = V.Y
 
-function VSHCache(T::Type, Y, B, θ, ϕ, modes::M) where {M<:Union{ML,LM}}
+function VSHCache(T::Type, YT, B, θ, ϕ, modes::M) where {M<:Union{ML,LM}}
     jmax = maximum(l_range(modes))
     S = cache(T, θ, ϕ, jmax)
-    Y = vshbasis(Y, B, modes, θ, ϕ, S)
+    Y = vshbasis(YT, B, modes, θ, ϕ, S)
     VSHCache{M}(Y, S)
 end
 function VSHCache(T::Type, θ, ϕ, modes::M) where {M<:Union{LM, ML}}
@@ -371,12 +371,10 @@ function vshbasis!(V::VSHCache, Y::AbstractVSH, B::Basis, θ, ϕ)
     return getY(V)
 end
 
-for M in [:LM, :ML]
-    @eval function vshbasis!(V::VSHCache{<:$M}, Y::AbstractVSH, B::Basis, modes::$M, θ, ϕ)
-        cache!(V.S, θ, ϕ, maximum(l_range(modes)))
-        vshbasis!(parent(getY(V)), Y, B, modes, θ, ϕ, V.S)
-        return getY(V)
-    end
+function vshbasis!(V::VSHCache{M}, Y::AbstractVSH, B::Basis, modes::Union{LM, ML}, θ, ϕ) where {M}
+    cache!(V.S, θ, ϕ, maximum(l_range(modes)))
+    vshbasis!(parent(getY(V)), Y, B, convert(M, modes), θ, ϕ, V.S)
+    return getY(V)
 end
 
 """
@@ -435,12 +433,10 @@ function genspharm!(V::VSHCache, θ, ϕ)
     return getY(V)
 end
 
-for M in [:LM, :ML]
-    @eval function genspharm!(V::VSHCache{<:$M}, modes::$M, θ, ϕ)
-        cache!(V.S, θ, ϕ, maximum(l_range(modes)))
-        genspharm!(parent(getY(V)), modes, θ, ϕ, V.S)
-        return getY(V)
-    end
+function genspharm!(V::VSHCache{M}, modes::Union{LM, ML}, θ, ϕ) where {M}
+    cache!(V.S, θ, ϕ, maximum(l_range(modes)))
+    genspharm!(parent(getY(V)), convert(M, modes), θ, ϕ, V.S)
+    return getY(V)
 end
 
 end
