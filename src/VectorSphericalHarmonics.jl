@@ -458,4 +458,6 @@ function genspharm!(V::VSHCache, modes::Union{LM, ML}, θ, ϕ)
     return getY(V)
 end
 
+include("precompile.jl")
+
 end
