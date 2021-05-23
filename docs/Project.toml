@@ -6,5 +6,3 @@ VectorSphericalHarmonics = "4b2bd704-7189-418b-a6ce-5ef15384b069"
 
 [Compat]
 Documenter = "0.26"
-SphericalHarmonicModes = "0.4"
-SphericalHarmonics = "0.1.14"

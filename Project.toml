@@ -28,9 +28,8 @@ Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 HCubature = "19dc6840-f33b-545b-b366-655c7e3ffd49"
 LegendrePolynomials = "3db4a2ba-fc88-11e8-3e01-49c72059a882"
 Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
-SphericalHarmonics = "c489a379-e885-57ff-9236-bd896d33c250"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 WignerD = "87c4ff3e-34df-11e9-37a7-516cea4e0402"
 
 [targets]
-test = ["Aqua", "HCubature", "LegendrePolynomials", "Rotations", "SphericalHarmonics", "Test", "WignerD"]
+test = ["Aqua", "HCubature", "LegendrePolynomials", "Rotations", "Test", "WignerD"]
