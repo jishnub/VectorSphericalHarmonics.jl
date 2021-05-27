@@ -337,20 +337,21 @@ _commonphase(::Irreducible, j, m) = _neg1pow(j + m + 1)
 _commonphase(::Hansen, j, m) = _neg1pow(m + 1)
 _commonphase(::PB, j, m) = _neg1pow(m)
 
-_maybereversebasis(Y, YT, ::Union{Cartesian, Polar}, YM) = Y
-_maybereversebasis(Y, YT, ::Union{SphericalCovariant, HelicityCovariant}, YM) = oftype(Y, _reverse!(Y, YM, dims = 1))
+_maybereversebasis(Y, ::AbstractVSH, ::Union{Cartesian, Polar}, YM) = Y
+_maybereversebasis(Y, ::AbstractVSH, ::Union{SphericalCovariant, HelicityCovariant}, YM) = oftype(Y, _reverse!(Y, YM, dims = 1))
 _maybereversebasis(Y, ::PB, ::Union{Cartesian, Polar}, YM) = oftype(Y, _reverse!(Y, YM, dims = 2))
-_maybereversebasis(Y, ::PB, ::Union{SphericalCovariant, HelicityCovariant}, YM) = oftype(Y, _reverse!(Y, YM))
+_maybereversebasis(Y, ::PB, ::SphericalCovariant, YM) = oftype(Y, _reverse!(Y, YM))
 _maybereversebasis(Y::Diagonal, ::PB, ::HelicityCovariant, YM) = Diagonal(oftype(parent(Y), _reverse!(parent(Y), parent(YM))))
 
-# Elaborate scheme to work around the fact that StaticArrays don't have an efficient reverse defined in general
-# This workaround might not be necessary after https://github.com/JuliaArrays/StaticArrays.jl/pull/910 is merged
-function _reverse!(Y, YM; dims = :)
+# Use efficient reverse(::StaticArray) defined by StaticArrays if possible
+_reverse!(Y::AbstractVector, ::Any; dims = :) = reverse(Y)
+_reverse!(Y, YM; dims = :) = _reverse!(Y, YM, dims)
+_reverse!(Y, ::Any, ::Colon) = reverse(Y)
+function _reverse!(Y, YM, dims)
     copyto!(YM, Y)
     reverse!(YM, dims = dims)
     return YM
 end
-_reverse!(Y::AbstractVector, YM::AbstractVector) = reverse(Y)
 
 _basisconjphase(::Union{SphericalCovariant, HelicityCovariant}) = SVector{3}(-1,1,-1)
 _basisconjphase(::Any) = 1
