@@ -144,7 +144,7 @@ function VSHCache(T::Type, YT::AbstractVSH, B::Basis, modes::Union{ML,LM})
     S = cache(T, jmax)
     el = vshbasis(YT, B, first(modes)..., 0.0, 0.0, S)
     el_zero = _zero(el)
-    v = [_copy(el_zero) for i in 1:length(modes)]
+    v = [_copy(el_zero) for _ in 1:length(modes)]
     Y = SHArray(v, modes)
     VSHCache(Y, S)
 end
@@ -153,7 +153,7 @@ function VSHCache(T::Type, modes::Union{LM, ML})
     S = cache(T, jmax)
     el = genspharm(first(modes)..., 0.0, 0.0, S)
     el_zero = _zero(el)
-    v = [_copy(el_zero) for i in 1:length(modes)]
+    v = [_copy(el_zero) for _ in 1:length(modes)]
     Y = SHArray(v, modes)
     VSHCache(Y, S)
 end
@@ -226,7 +226,7 @@ function _vshbasis(::PB, B, j, m, θ, ϕ, S)
     Y0 = Hm1
     Yp1 = 1/√T(2) * (Hp1 - H0)
 
-    M = SMatrix{3,3}((Ym1..., Y0..., Yp1...))
+    SMatrix{3,3}((Ym1..., Y0..., Yp1...))
 end
 
 function __vshbasis(::Hansen, B, j, m, θ, ϕ, S)
@@ -328,7 +328,7 @@ A pre-allocated array of scalar spherical harmonics `S` may be passed as the fin
 function vshbasis(Y::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
     el = vshbasis(Y, B, first(modes)..., θ, ϕ, S)
     el_zero = _zero(el)
-    v = [_copy(el_zero) for i in 1:length(modes)]
+    v = [_copy(el_zero) for _ in 1:length(modes)]
     vshbasis!(v, Y, B, modes, θ, ϕ, S)
     SHArray(v, modes)
 end
@@ -430,7 +430,7 @@ A pre-allocated array of scalar spherical harmonics `S` may be passed as the fin
 function genspharm(modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
     el = genspharm(first(modes)..., θ, ϕ, S)
     el_zero = _zero(el)
-    v = [_copy(el_zero) for i in 1:length(modes)]
+    v = [_copy(el_zero) for _ in 1:length(modes)]
     genspharm!(v, modes, θ, ϕ, S)
     SHArray(v, modes)
 end
