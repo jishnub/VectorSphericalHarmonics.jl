@@ -89,13 +89,13 @@ const Ylm = getY(S);
 end
 
 @testset "cache" begin
-    S = @inferred cache(Float64, 1)
-    cache!(S, pi/3, pi/4)
-    @test getY(S) == getY(cache(Float64, pi/3, pi/4, 1))
+    S2 = @inferred cache(Float64, 1)
+    cache!(S2, pi/3, pi/4)
+    @test getY(S2) == getY(cache(Float64, pi/3, pi/4, 1))
 
-    S = @inferred cache(1)
-    cache!(S, pi/3, pi/4)
-    @test getY(S) == getY(cache(Float64, pi/3, pi/4, 1))
+    S2 = @inferred cache(1)
+    cache!(S2, pi/3, pi/4)
+    @test getY(S2) == getY(cache(Float64, pi/3, pi/4, 1))
 end
 
 @testset "VSH orientations" begin
@@ -564,12 +564,12 @@ end
     lmax = 2
     modes = LM(0:lmax)
     θ, ϕ = pi/3, pi/3
-    S = VectorSphericalHarmonics.cache(Float64, θ, ϕ, lmax)
+    S2 = VectorSphericalHarmonics.cache(Float64, θ, ϕ, lmax)
     for YT in [Irreducible(), PB(), Hansen()], B in [Cartesian(), Polar(), SphericalCovariant(), HelicityCovariant()]
         @testset "$YT $B" begin
-            Y_multiple = vshbasis(YT, B, modes, θ, ϕ, S)
+            Y_multiple = vshbasis(YT, B, modes, θ, ϕ, S2)
             for (ind, (j, m)) in enumerate(modes)
-                Y = vshbasis(YT, B, j, m, θ, ϕ, S)
+                Y = vshbasis(YT, B, j, m, θ, ϕ, S2)
                 @test isapproxdefault(Y_multiple[ind], Y)
             end
         end
@@ -912,7 +912,7 @@ end
     lmax = 3
     modes = ML(0:lmax)
 
-    S = VectorSphericalHarmonics.cache(0, 0, lmax);
+    S2 = VectorSphericalHarmonics.cache(0, 0, lmax);
     S′ = VectorSphericalHarmonics.cache(0, 0, lmax);
     Dvec = OffsetArray([zeros(ComplexF64, 2l+1, 2l+1) for l in 0:lmax], 0:lmax);
 
@@ -932,8 +932,8 @@ end
 
         @testset "genspharm" begin
             for θ in LinRange(0, pi, 6), ϕ in LinRange(0, 2pi, 6)
-                VectorSphericalHarmonics.cache!(S, θ, ϕ);
-                Y = genspharm(modes, θ, ϕ, S);
+                VectorSphericalHarmonics.cache!(S2, θ, ϕ);
+                Y = genspharm(modes, θ, ϕ, S2);
                 n = cartvec(θ, ϕ)
                 Un = basisconversionmatrix(Cartesian(), HelicityCovariant(), θ, ϕ);
 
@@ -987,11 +987,11 @@ end
         @testset "VSH" begin
             for θ in LinRange(0, pi, 6), ϕ in LinRange(0, 2pi, 6)
                 n = cartvec(θ, ϕ)
-                VectorSphericalHarmonics.cache!(S, θ, ϕ);
+                VectorSphericalHarmonics.cache!(S2, θ, ϕ);
 
                 for YT in [Irreducible(), Hansen(), PB()], B in [Cartesian(), SphericalCovariant(), HelicityCovariant(), Polar()]
                     Un = basisconversionmatrix(Cartesian(), B, θ, ϕ)
-                    Y = vshbasis(YT, B, modes, θ, ϕ, S);
+                    Y = vshbasis(YT, B, modes, θ, ϕ, S2);
 
                     # We evaluate the rotation of the dot product between VSH and a vector field
                     # In this case we choose a constant vector field directed along x̂ at each point,
