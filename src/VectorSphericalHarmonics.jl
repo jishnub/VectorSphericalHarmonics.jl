@@ -465,13 +465,30 @@ function genspharm(modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maxim
     SHArray(v, modes)
 end
 
-function genspharm!(A::AbstractVector, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
+function genspharm!(A::AbstractVector, modes::Union{ML,LM}, θ, ϕ, S::Union{Nothing, SHCache} = nothing)
+    if θ == 0
+        _genspharm!(A, modes, NorthPole(), ϕ, S)
+    elseif θ == pi
+        _genspharm!(A, modes, SouthPole(), ϕ, S)
+    else
+        _genspharm!(A, modes, θ, ϕ, S)
+    end
+    return A
+end
+
+function _genspharm!(A::AbstractVector, modes::Union{ML,LM}, θ, ϕ, S::Union{Nothing, SHCache} = nothing)
+    if minimum(abs, m_range(modes)) <= 1
+        S2 = _computeS(S, θ, ϕ, maximum(l_range(modes)))
+    end
     for (ind, (j,m)) in zip(eachindex(A), modes)
+        if θ isa Pole && abs(m) > 1
+            A[ind] = OffsetArray(zero(A[ind]), _basisinds(HelicityCovariant()))
+        end
         if (j,-m) in modes && modeindex(modes, j, -m) < ind
             Y = A[modeindex(modes, j, -m)]
             A[ind] = _conjphase(PB(), HelicityCovariant(), Y, j, m)
         else
-            A[ind] = genspharm(j, m, θ, ϕ, S)
+            A[ind] = genspharm(j, m, θ, ϕ, S2)
         end
     end
     return A
@@ -483,8 +500,10 @@ function genspharm!(V::VSHCache, θ, ϕ)
 end
 
 function genspharm!(V::VSHCache, modes::Union{LM, ML}, θ, ϕ)
-    cache!(V.S, θ, ϕ, maximum(l_range(modes)))
     modes_Vorder = SphericalHarmonicModes.ofordering(_modes(V), modes)
+    if !((θ == 0 || θ == pi) && minimum(abs, m_range(modes_Vorder)) > 1)
+        cache!(V.S, θ, ϕ, maximum(l_range(modes)))
+    end
     genspharm!(parent(getY(V)), modes_Vorder, θ, ϕ, V.S)
     return getY(V)
 end
