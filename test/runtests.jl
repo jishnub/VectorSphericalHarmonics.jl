@@ -1076,17 +1076,30 @@ end
         @test getY(V) == M
         @test eltypeY(V) == eltype(getY(V))
 
-        vshbasis!(V, Irreducible(), Polar(), θ2, ϕ2)
-        M = vshbasis(Irreducible(), Polar(), modes, θ2, ϕ2)
-        @test getY(V) == M
+        for θ in Any[θ2, NorthPole(), SouthPole()]
+            vshbasis!(V, Irreducible(), Polar(), θ, ϕ2)
+            M = vshbasis(Irreducible(), Polar(), modes, θ, ϕ2)
+            @test getY(V) == M
+        end
     end
     @testset "genspharm!" begin
         V = @inferred VectorSphericalHarmonics.VSHCache(Float64, θ1, ϕ1, modes);
         M = genspharm(modes, θ1, ϕ1)
         @test getY(V) == M
 
-        genspharm!(V, θ2, ϕ2)
-        M = genspharm(modes, θ2, ϕ2)
-        @test getY(V) == M
+        for θ in Any[θ2, NorthPole(), SouthPole()]
+            genspharm!(V, θ, ϕ2)
+            M = genspharm(modes, θ, ϕ2)
+            @test getY(V) == M
+        end
+    end
+    @testset "uninitialized" begin
+        V = VectorSphericalHarmonics.VSHCache(PB(), Cartesian(), LM(0:1))
+        @test eltype(VectorSphericalHarmonics.eltypeY(V)) == ComplexF64
+        @test all(iszero, VectorSphericalHarmonics.getY(V))
+
+        V = VectorSphericalHarmonics.VSHCache(LM(0:1))
+        @test eltype(VectorSphericalHarmonics.eltypeY(V)) == ComplexF64
+        @test all(iszero, VectorSphericalHarmonics.getY(V))
     end
 end
