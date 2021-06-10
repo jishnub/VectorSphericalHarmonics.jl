@@ -567,27 +567,32 @@ end
 @testset "one vs multiple" begin
     lmax = 2
     modes = LM(0:lmax)
-    θ, ϕ = pi/3, pi/3
-    S2 = VectorSphericalHarmonics.cache(Float64, θ, ϕ, lmax)
+    S2 = VectorSphericalHarmonics.cache(Float64, lmax)
     for YT in [Irreducible(), PB(), Hansen()], B in [Cartesian(), Polar(), SphericalCovariant(), HelicityCovariant()]
         @testset "$YT $B" begin
-            Y_multiple = vshbasis(YT, B, modes, θ, ϕ, S2)
-            Y_multiple2 = vshbasis(YT, B, modes, θ, ϕ)
-            for (ind, (j, m)) in enumerate(modes)
-                Y = vshbasis(YT, B, j, m, θ, ϕ, S2)
-                @test isapproxdefault(Y_multiple[ind], Y)
-                @test isapproxdefault(Y_multiple2[ind], Y)
+            for (θ, ϕ) in ((pi/3, pi/3), (0,0))
+                cache!(S2, θ, ϕ)
+                Y_multiple = vshbasis(YT, B, modes, θ, ϕ, S2)
+                Y_multiple2 = vshbasis(YT, B, modes, θ, ϕ)
+                for (ind, (j, m)) in enumerate(modes)
+                    Y = vshbasis(YT, B, j, m, θ, ϕ, S2)
+                    @test isapproxdefault(Y_multiple[ind], Y)
+                    @test isapproxdefault(Y_multiple2[ind], Y)
+                end
             end
         end
     end
 
     @testset "genspharm" begin
-        Y_multiple = genspharm(modes, θ, ϕ, S2)
-        Y_multiple2 = genspharm(modes, θ, ϕ)
-        for (ind, (j, m)) in enumerate(modes)
-            Y = genspharm(j, m, θ, ϕ, S2)
-            @test isapproxdefault(Y_multiple[ind], Y)
-            @test isapproxdefault(Y_multiple2[ind], Y)
+        for (θ, ϕ) in ((pi/3, pi/3), (0,0))
+            cache!(S2, θ, ϕ)
+            Y_multiple = genspharm(modes, θ, ϕ, S2)
+            Y_multiple2 = genspharm(modes, θ, ϕ)
+            for (ind, (j, m)) in enumerate(modes)
+                Y = genspharm(j, m, θ, ϕ, S2)
+                @test isapproxdefault(Y_multiple[ind], Y)
+                @test isapproxdefault(Y_multiple2[ind], Y)
+            end
         end
     end
 end
