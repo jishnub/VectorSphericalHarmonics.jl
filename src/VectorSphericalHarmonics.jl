@@ -397,7 +397,7 @@ function vshbasis!(A::AbstractVector, YT::AbstractVSH, B::Basis, modes::Union{ML
 end
 
 function _vshbasis!(A::AbstractVector, YT::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::Union{Nothing, SHCache} = nothing)
-    if minimum(abs, m_range(modes)) <= 1
+    if !(θ isa Pole && minimum(abs, m_range(modes)) > 1)
         S2 = _computeS(S, θ, ϕ, maximum(l_range(modes)))
         scratchM = similar(parent(first(A)))
     end
@@ -489,7 +489,7 @@ function genspharm!(A::AbstractVector, modes::Union{ML,LM}, θ, ϕ, S::Union{Not
 end
 
 function _genspharm!(A::AbstractVector, modes::Union{ML,LM}, θ, ϕ, S::Union{Nothing, SHCache} = nothing)
-    if minimum(abs, m_range(modes)) <= 1
+    if !(θ isa Pole && minimum(abs, m_range(modes)) > 1)
         S2 = _computeS(S, θ, ϕ, maximum(l_range(modes)))
     end
     for (ind, (j,m)) in zip(eachindex(A), modes)
