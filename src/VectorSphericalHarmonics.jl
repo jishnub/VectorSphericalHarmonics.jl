@@ -379,14 +379,32 @@ function _conjphase(YT, B, Y, j, m, scratchM = Y)
     OffsetArray(Y2, axes(Y))
 end
 
-function vshbasis!(A::AbstractVector, YT::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
-    scratchM = similar(parent(first(A)))
+function vshbasis!(A::AbstractVector, YT::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::Union{Nothing, SHCache} = nothing)
+    if θ == 0
+        _vshbasis!(A, YT, B, modes, NorthPole(), ϕ, S)
+    elseif θ == pi
+        _vshbasis!(A, YT, B, modes, SouthPole(), ϕ, S)
+    else
+        _vshbasis!(A, YT, B, modes, θ, ϕ, S)
+    end
+    return A
+end
+
+function _vshbasis!(A::AbstractVector, YT::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::Union{Nothing, SHCache} = nothing)
+    if minimum(abs, m_range(modes)) <= 1
+        S2 = _computeS(S, θ, ϕ, maximum(l_range(modes)))
+        scratchM = similar(parent(first(A)))
+    end
     for (ind, (j,m)) in zip(eachindex(A), modes)
+        if θ isa Pole && abs(m) > 1
+            A[ind] = OffsetArray(zero(A[ind]), _basisinds(B), _vectorinds(YT, j))
+            continue
+        end
         if (j,-m) in modes && modeindex(modes, j, -m) < ind
             Y1 = A[modeindex(modes, j, -m)]
             A[ind] = _conjphase(YT, B, Y1, j, m, scratchM)
         else
-            A[ind] = vshbasis(YT, B, j, m, θ, ϕ, S)
+            A[ind] = vshbasis(YT, B, j, m, θ, ϕ, S2)
         end
     end
     return A
@@ -398,9 +416,11 @@ function vshbasis!(V::VSHCache, YT::AbstractVSH, B::Basis, θ, ϕ)
 end
 
 function vshbasis!(V::VSHCache, YT::AbstractVSH, B::Basis, modes::Union{LM, ML}, θ, ϕ)
-    cache!(V.S, θ, ϕ, maximum(l_range(modes)))
-    modes_Vorder = SphericalHarmonicModes.ofordering(_modes(V), modes)
     Y = getY(V)
+    modes_Vorder = SphericalHarmonicModes.ofordering(_modes(V), modes)
+    if !((θ == 0 || θ == pi) && minimum(abs, m_range(modes_Vorder)) > 1)
+        cache!(V.S, θ, ϕ, maximum(l_range(modes)))
+    end
     vshbasis!(parent(Y), YT, B, modes_Vorder, θ, ϕ, V.S)
     return Y
 end
