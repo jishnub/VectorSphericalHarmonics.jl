@@ -333,11 +333,17 @@ for all `(j,m)` in `modes`, and return their components in the basis `B`.
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument. This may be generated
 using [`VectorSphericalHarmonics.cache`](@ref).
 """
-function vshbasis(Y::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
-    el = vshbasis(Y, B, first(modes)..., θ, ϕ, S)
+function vshbasis(Y::AbstractVSH, B::Basis, modes::Union{ML,LM}, θ, ϕ, S::Union{Nothing, SHCache} = nothing)
+    if !((θ == 0 || θ == pi) && minimum(abs, m_range(modes)) > 1)
+        S2 = _computeS(S, θ, ϕ, maximum(l_range(modes)))
+    else
+        S2 = nothing
+    end
+    j, m = first(modes)
+    el = vshbasis(Y, B, j, m, θ, ϕ, S2)
     el_zero = _zero(el)
     v = [_copy(el_zero) for _ in 1:length(modes)]
-    vshbasis!(v, Y, B, modes, θ, ϕ, S)
+    vshbasis!(v, Y, B, modes, θ, ϕ, S2)
     SHArray(v, modes)
 end
 
@@ -442,7 +448,7 @@ which is the nomenclature used here.
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument. This may be generated
 using [`VectorSphericalHarmonics.cache`](@ref).
 """
-function genspharm(j, m, θ, ϕ, S::SHCache = cache(θ, ϕ, j))
+function genspharm(j, m, θ, ϕ, S::Union{Nothing, SHCache} = nothing)
     Y = vshbasis(PB(), HelicityCovariant(), j, m, θ, ϕ, S)
     M = diag(parent(Y))
     OffsetArray(M, _basisinds(HelicityCovariant()))
@@ -457,11 +463,17 @@ in the [`HelicityCovariant`](@ref) basis for all modes `(j,m)` in `modes`.
 A pre-allocated array of scalar spherical harmonics `S` may be passed as the final argument. This may be generated
 using [`VectorSphericalHarmonics.cache`](@ref).
 """
-function genspharm(modes::Union{ML,LM}, θ, ϕ, S::SHCache = cache(θ, ϕ, maximum(l_range(modes))))
-    el = genspharm(first(modes)..., θ, ϕ, S)
+function genspharm(modes::Union{ML,LM}, θ, ϕ, S::Union{Nothing, SHCache} = nothing)
+    if !((θ == 0 || θ == pi) && minimum(abs, m_range(modes)) > 1)
+        S2 = _computeS(S, θ, ϕ, maximum(l_range(modes)))
+    else
+        S2 = nothing
+    end
+    j, m = first(modes)
+    el = genspharm(j, m, θ, ϕ, S2)
     el_zero = _zero(el)
     v = [_copy(el_zero) for _ in 1:length(modes)]
-    genspharm!(v, modes, θ, ϕ, S)
+    genspharm!(v, modes, θ, ϕ, S2)
     SHArray(v, modes)
 end
 
@@ -483,6 +495,7 @@ function _genspharm!(A::AbstractVector, modes::Union{ML,LM}, θ, ϕ, S::Union{No
     for (ind, (j,m)) in zip(eachindex(A), modes)
         if θ isa Pole && abs(m) > 1
             A[ind] = OffsetArray(zero(A[ind]), _basisinds(HelicityCovariant()))
+            continue
         end
         if (j,-m) in modes && modeindex(modes, j, -m) < ind
             Y = A[modeindex(modes, j, -m)]
