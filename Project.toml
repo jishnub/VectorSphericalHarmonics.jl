@@ -1,7 +1,7 @@
 name = "VectorSphericalHarmonics"
 uuid = "4b2bd704-7189-418b-a6ce-5ef15384b069"
 authors = ["jishnub <jishnub@users.noreply.github.com> and contributors"]
-version = "0.1.7"
+version = "0.1.8"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

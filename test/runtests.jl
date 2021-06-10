@@ -1089,4 +1089,13 @@ end
         M = genspharm(modes, θ2, ϕ2)
         @test getY(V) == M
     end
+    @testset "uninitialized" begin
+        V = VectorSphericalHarmonics.VSHCache(PB(), Cartesian(), LM(0:1))
+        @test eltype(VectorSphericalHarmonics.eltypeY(V)) == ComplexF64
+        @test all(iszero, VectorSphericalHarmonics.getY(V))
+
+        V = VectorSphericalHarmonics.VSHCache(LM(0:1))
+        @test eltype(VectorSphericalHarmonics.eltypeY(V)) == ComplexF64
+        @test all(iszero, VectorSphericalHarmonics.getY(V))
+    end
 end
