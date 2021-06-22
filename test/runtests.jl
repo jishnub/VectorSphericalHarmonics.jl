@@ -1056,12 +1056,13 @@ end
                     for α in LinRange(0, 2pi, 6), β in LinRange(0, pi, 6), γ in LinRange(0, 2pi, 6)
                         # the rotation that transforms between frames S′ = RS
                         R = RotZYZ(α, β, γ)
-                        n′ = inv(R) * n
+                        R⁻¹ = inv(R)
+                        n′ = R⁻¹ * n
                         θ′, ϕ′ = polcoords(n′)
                         VectorSphericalHarmonics.cache!(S′, θ′, ϕ′);
                         U′n = basisconversionmatrix(Cartesian(), B, θ′, ϕ′);
 
-                        R′ = (U′n * R' * Un')
+                        R′ = (U′n * R⁻¹ * Un')
                         if B === HelicityCovariant()
                             @test R′ ≈ Diagonal(R′)
                         end

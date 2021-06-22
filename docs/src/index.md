@@ -48,7 +48,7 @@ The Hansen VSH basis is related to scalar spherical harmonics through
 \end{aligned}
 ```
 
-The third set, referred to as `PB` harmonics following their use by Phinney and Burridge (1973), are related to the `Hansen` harmonics through
+The third set, referred to as `PB` harmonics following their use by [Phinney and Burridge (1973)](https://onlinelibrary.wiley.com/doi/epdf/10.1111/j.1365-246X.1973.tb02407.x), are related to the `Hansen` harmonics through
 
 ```math
 \begin{aligned}
@@ -222,28 +222,54 @@ The vector spherical harmonics are non-zero at the poles only for ``m=0,\pm 1``.
 
 # Rotation of coordinates
 
-We assume that a point ``\hat{n}`` has the coordinates ``(\theta_1,\phi_1)`` in the frame ``S_1`` and ``(\theta_2,\phi_2)`` in the frame ``S_2``, where the two frames are related by a rotation ``S_2 = R S_1``. Under this rotation, vector spherical harmonics at the point ``\hat{n}`` computed in the two frames are related by
+We assume that a point has the coordinates ``\hat{n}=(\theta_1,\phi_1)`` in the frame ``S_1`` and ``\hat{n}^\prime=(\theta_2,\phi_2)`` in the frame ``S_2``, where the two frames are related by a rotation ``S_2 = R S_1``. Under this rotation, vector spherical harmonics at the point computed in the two frames are related by
 
 ```math
-\mathbf{Y}_{JM^{\prime}}^{\alpha}\left(\theta_{2},\phi_{2}\right)=\sum_{M}D_{MM^{\prime}}^{J}\left(R\right)\mathbf{Y}_{JM}^{\alpha}\left(\theta_{1},\phi_{1}\right).
+\mathbf{Y}_{JM^{\prime}}^{\prime\alpha}\left(\hat{n}^\prime\right)=\sum_{M}D_{MM^{\prime}}^{J}\left(R\right)\mathbf{Y}_{JM}^{\alpha}\left(\hat{n}\right).
 ```
 
-where ``D_{MM^{\prime}}^{J}`` are elements of the Wigner D-matrix. This relation holds for all the harmonics defined here. An important point to note here is that the new vector spherical harmonics ``\mathbf{Y}_{JM^{\prime}}^{\alpha}\left(\theta_{2},\phi_{2}\right)`` are computed about the rotated set of axes ``S_2``, whereas ``\mathbf{Y}_{JM}^{\alpha}\left(\theta_{1},\phi_{1}\right)`` are evaluated about ``S_1``.
+where ``D_{MM^{\prime}}^{J}`` are elements of the Wigner D-matrix. This relation holds for all the harmonics defined here. An important point to note here is that the new vector spherical harmonics ``\mathbf{Y}_{JM^{\prime}}^{\prime\alpha}\left(\hat{n}^\prime\right)`` are computed about the rotated set of axes ``S_2``, whereas ``\mathbf{Y}_{JM}^{\alpha}\left(\hat{n}\right)`` are evaluated about ``S_1``. In particular, if we refer to the spherical covariant basis in the frame ``S_1`` as ``\chi_\mu`` and that in ``S_2`` as ``\chi^{\prime}_\mu``, we may define the `Irreducible` harmonics as
 
-!!! note
-    This relation does not hold for components of the vector harmonics, as the axes of ``S_1`` and ``S_2`` are oriented differently in space. The components may be computed by accounting for the rotation of the axes.
-    ```math
-    \left[\mathbf{Y}_{JM^{\prime}}^{\alpha}\left(\theta_{2},\phi_{2}\right)\right]^{\nu}=A_{\nu\mu}^{\dagger}\left(\theta_{2},\phi_{2},\theta_{1},\phi_{1}\right)\sum_{M}D_{MM^{\prime}}^{J}\left(R\right)\left[\mathbf{Y}_{JM}^{\alpha}\left(\theta_{1},\phi_{1}\right)\right]^{\mu},
-    ```
-    where
-    ``
-    A_{\mu\nu}=\left\langle \mathbf{e}^{1}_{\mu},\mathbf{e}_{\nu}^{2}\right\rangle
-    ``
-    is the matrix of the inner products of the unit vectors in the two frames, which may be related to the Cartesian rotation matrix ``R`` through
-    ``
-    A = U R U^\dagger,
-    ``
-    where ``U`` is the matrix that transforms the components from the Cartesian basis to the one chosen.
+```math
+\begin{aligned}
+\mathbf{Y}_{jn}^{\ell}\left(\hat{n}\right)&=\sum_{\alpha\mu}C_{\ell\alpha1\mu}^{jn}Y_{\ell\alpha}\left(\hat{n}\right)\chi_{\mu},\\\mathbf{Y}_{jm^{\prime}}^{\prime\ell}\left(\hat{n}^{\prime}\right)&=\sum_{\alpha\mu}C_{\ell\alpha1\mu}^{jm^{\prime}}Y_{\ell\alpha}\left(\hat{n}^{\prime}\right)\chi_{\mu}^{\prime}.
+\end{aligned}
+```
+
+We may also construct the vector harmonic ``\mathbf{Y}_{JM^{\prime}}^{\alpha}\left(\theta_{2},\phi_{2}\right)``, this time using the basis ``\chi_\mu`` in the frame ``S_1``. We refer to the point ``(\theta_2,\phi_2)`` as ``\hat{n}^\prime`` in ``S_1``, which has the same coordinates as the point ``\hat{n}^\prime`` in ``S_2``, but differs in the choice of axes used to define the coordinates. We may express this harmonic as
+
+```math
+\mathbf{Y}_{jm^{\prime}}^{\ell}\left(\hat{n}^{\prime}\right)=\sum_{\alpha\mu}C_{\ell\alpha1\mu}^{jm^{\prime}}Y_{\ell\alpha}\left(\hat{n}^{\prime}\right)\chi_{\mu}.
+```
+
+We may use the vector rotation relation ``\chi^{\prime}_{\mu}=U(R)\chi_{\mu}`` given the rotation operator ``U(R)`` to obtain
+
+```math
+\mathbf{Y}_{jm^{\prime}}^{\prime\ell}\left(\hat{n}^{\prime}\right)=U\left(R\right)\mathbf{Y}_{jm^{\prime}}^{\ell}\left(\hat{n}^{\prime}\right)
+```
+
+Here the rotation ``U(R)`` only acts on the vector basis, and may be throught of as ``I⊗U(R)`` in its action on the vector harmonics. We may represent the operator as ``U(R)=\left|\chi_{\mu}^{\prime}\right\rangle \left\langle \chi_{\mu}\right|``. Inverting this relation, and using the rotation relation from above, we obtain
+
+```math
+\mathbf{Y}_{jm^{\prime}}^{\ell}\left(\hat{n}^{\prime}\right)=U\left(R^{-1}\right)\sum_{n}D_{nm^{\prime}}^{j}\left(R\right)\mathbf{Y}_{jn}^{\ell}\left(\hat{n}\right).
+```
+
+In the Cartesian basis, we obtain
+
+```math
+\begin{aligned}
+\left[\mathbf{Y}_{jm^{\prime}}^{\ell}\left(\hat{n}^{\prime}\right)\right]^{p}&=\left\langle \mathbf{e}_{p}\right|U\left(R^{-1}\right)\left|\mathbf{e}_{q}\right\rangle \left\langle \mathbf{e}_{q}\right|\sum_{n}D_{nm^{\prime}}^{j}\left(R\right)\mathbf{Y}_{jn}^{\ell}\left(\hat{n}\right)\\&=R_{pq}^{-1}\sum_{n}D_{nm^{\prime}}^{j}\left(R\right)\left[\mathbf{Y}_{jn}^{\ell}\left(\hat{n}\right)\right]^{q}.
+\end{aligned}
+```
+where ``R_{pq}`` are elements of the rotation matrix. Similar relations may be obtained in other bases by transforming to the corresponding rotation matrix in each base. If the matrix ``A`` transforms between the Cartesian and the other basis, satisfying ``A_{ij}=\left\langle \mathbf{e}_{j}|\mathbf{e}_{i}^{\prime}\right\rangle``, we obtain the rotation matrix ``R^{\prime}=A^{*}RA^{T}`` and the relation
+
+```math
+\left[\mathbf{Y}_{jm^{\prime}}^{\ell}\left(\hat{n}^{\prime}\right)\right]^{p^{\prime}}=R_{p^{\prime}q^{\prime}}^{\prime-1}\sum_{n}D_{nm^{\prime}}^{j}\left(R\right)\left[\mathbf{Y}_{jn}^{\ell}\left(\hat{n}\right)\right]^{q^{\prime}}
+```
+
+We may also choose a basis that is coordinate-dependent, such as the polar or the helicity basis. In this case the rotation matrix becomes ``R^{\prime}=A(\hat{n})^{*}RA(\hat{n}^\prime)^{T}``, and the same relation still holds.
+
+Similar relations may also be obtained for the other harmonics.
 
 # Index
 
