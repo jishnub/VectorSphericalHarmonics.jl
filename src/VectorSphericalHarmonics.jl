@@ -71,6 +71,7 @@ harmonics through
 ```
 """
 struct PB <: AbstractVSH end
+Base.broadcastable(YT::AbstractVSH) = Ref(YT)
 
 include("basis.jl")
 
