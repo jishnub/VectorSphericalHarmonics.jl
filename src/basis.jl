@@ -29,6 +29,8 @@ The Cartesian basis ``\hat{x}``, ``\hat{y}``, ``\hat{z}``
 """
 struct Cartesian <: Basis end
 
+Base.broadcastable(B::Basis) = Ref(B)
+
 _basisinds(::Union{HelicityCovariant, SphericalCovariant}) = -1:1
 _basisinds(::Union{Cartesian, Polar}) = 1:3
 

@@ -1126,3 +1126,21 @@ end
         @test all(iszero, VectorSphericalHarmonics.getY(V))
     end
 end
+
+@testset "broadcast tags" begin
+    function components_of_x̂(Basis, (θ,ϕ))
+        B = VectorSphericalHarmonics.basisconversionmatrix(Cartesian(), Basis, θ, ϕ)
+        B * SVector{3}(1,0,0)
+    end
+    for B in [Cartesian(), Polar(), SphericalCovariant(), HelicityCovariant()]
+        x1, x2 = components_of_x̂.(B, ((pi/2, 0), (pi/2, pi/4)))
+        @test x1 == components_of_x̂(B, (pi/2, 0))
+        @test x2 == components_of_x̂(B, (pi/2, pi/4))
+    end
+    V = vshbasis.(Hansen(), Polar(), 1:2, -1, pi/2, 0)
+    @test V[1] == vshbasis(Hansen(), Polar(), 1, -1, pi/2, 0)
+    @test V[2] == vshbasis(Hansen(), Polar(), 2, -1, pi/2, 0)
+    V = vshbasis.(Hansen(), Polar(), 1, -1, (pi/2, pi/4), 0)
+    @test V[1] == vshbasis(Hansen(), Polar(), 1, -1, pi/2, 0)
+    @test V[2] == vshbasis(Hansen(), Polar(), 1, -1, pi/4, 0)
+end
