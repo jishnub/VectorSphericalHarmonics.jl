@@ -148,6 +148,40 @@ function cartesian_polar_conversion(θ, ϕ)
 end
 polar_cartesian_conversion(θ, ϕ) = cartesian_polar_conversion(θ, ϕ)'
 
+"""
+    basisconversionmatrix(B1, B2, θ, ϕ)
+
+Return the matrix that converts the components of a vector from the basis `B1` to the basis `B2`
+at the point `(θ,ϕ)`.
+
+!!! note
+    For the complex bases `SphericalCovariant` and `HelicityCovariant`, the matrix transforms the
+    contravariant components between bases.
+
+# Examples
+```jldoctest
+julia> v = [1,0,0] # x
+3-element Vector{Int64}:
+ 1
+ 0
+ 0
+
+julia> θ, ϕ = pi/2, 0
+(1.5707963267948966, 0)
+
+julia> M = VectorSphericalHarmonics.basisconversionmatrix(Cartesian(), Polar(), θ, ϕ)
+3×3 StaticArrays.SMatrix{3, 3, Float64, 9} with indices SOneTo(3)×SOneTo(3):
+  1.0          0.0   6.12323e-17
+  6.12323e-17  0.0  -1.0
+ -0.0          1.0   0.0
+
+julia> M * v # polar coordinates along r, θ, ϕ
+3-element StaticArrays.SVector{3, Float64} with indices SOneTo(3):
+ 1.0
+ 6.123233995736766e-17
+ 0.0
+```
+"""
 basisconversionmatrix(::T, ::T, θ, ϕ) where {T<:Basis} = I
 basisconversionmatrix(::HelicityCovariant, ::SphericalCovariant, θ, ϕ) = helicity_spherical_conversion(θ, ϕ)
 basisconversionmatrix(::SphericalCovariant, ::HelicityCovariant, θ, ϕ) = spherical_helicity_conversion(θ, ϕ)
