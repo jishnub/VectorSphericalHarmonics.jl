@@ -963,6 +963,7 @@ end
                     VectorSphericalHarmonics.cache!(S′, θ′, ϕ′);
                     α, β, γ = ϕ, θ-θ′, -ϕ′
                     R = RotZYZ(α, β, γ)
+                    R⁻¹ = inv(R)
                     # this specific rotation satisfies the condition U′n * R' * Un' == I,
                     # so the basis rotation matrix may be left out
                     # This happens because Un for polar == RotYZ(-θ, -ϕ) (albeit with permuted rows), so
@@ -970,7 +971,7 @@ end
                     # Un for HelicityCovariant is related to that for the polar matrix through a unitary
                     # transformation, so the same relation holds
                     U′n = basisconversionmatrix(Cartesian(), HelicityCovariant(), θ′, ϕ′);
-                    @test U′n * R' * Un' ≈ I
+                    @test U′n * R⁻¹ * Un' ≈ I
                     for l in 0:lmax
                         Dp = wignerD!(Dvec[l], l, α, β, γ);
                         D = OffsetArray(Dp, -l:l, -l:l)
@@ -987,17 +988,18 @@ end
                 for α in LinRange(0, 2pi, 6), β in LinRange(0, pi, 6), γ in LinRange(0, 2pi, 6)
                     # the rotation that transforms between frames S′ = RS
                     R = RotZYZ(α, β, γ)
-                    n′ = inv(R) * n
+                    R⁻¹ = inv(R)
+                    n′ = R⁻¹ * n
                     θ′, ϕ′ = polcoords(n′)
                     VectorSphericalHarmonics.cache!(S′, θ′, ϕ′);
                     U′n = basisconversionmatrix(Cartesian(), HelicityCovariant(), θ′, ϕ′);
-                    R′ = (U′n * R' * Un')
-                    @test R′ ≈ Diagonal(R′)
+                    M⁻¹ = U′n * R⁻¹ * Un'
+                    @test M⁻¹ ≈ Diagonal(M⁻¹)
                     for l in 0:lmax
                         Dp = wignerD!(Dvec[l], l, α, β, γ);
                         D = OffsetArray(Dp, -l:l, -l:l)
                         for m in -l:l
-                            Ylθϕrot_m = sum(D[m′, m] * R′ * parent(Y[(l, m′)]) for m′ in -l:l)
+                            Ylθϕrot_m = M⁻¹ * sum(D[m′, m] * parent(Y[(l, m′)]) for m′ in -l:l)
                             Ylmθ′ϕ′ = parent(genspharm(l, m, θ′, ϕ′, S′))
                             @test isapprox(Ylmθ′ϕ′, Ylθϕrot_m, atol = 1e-13, rtol = 1e-8)
                         end
@@ -1062,22 +1064,28 @@ end
                         VectorSphericalHarmonics.cache!(S′, θ′, ϕ′);
                         U′n = basisconversionmatrix(Cartesian(), B, θ′, ϕ′);
 
-                        R′ = (U′n * R⁻¹ * Un')
+                        M⁻¹ = (U′n * R⁻¹ * Un')
                         if B === HelicityCovariant()
-                            @test R′ ≈ Diagonal(R′)
+                            @test M⁻¹ ≈ Diagonal(M⁻¹)
                         end
+                        M = inv(M⁻¹)
 
-                        x_n′ = R′ * x_n
+                        x_n′ = M⁻¹ * x_n
 
                         for l in 0:lmax
                             Dp = wignerD!(Dvec[l], l, α, β, γ);
                             D = OffsetArray(Dp, -l:l, -l:l)
                             for m in -l:l
-                                Ylθϕrot_m = sum(D[m′, m] * R′ * parent(Y[(l, m′)]) for m′ in -l:l)
+                                Ylθϕrot_m = M⁻¹ * sum(D[m′, m] * parent(Y[(l, m′)]) for m′ in -l:l)
                                 Ylmθ′ϕ′ = parent(vshbasis(YT, B, l, m, θ′, ϕ′, S′))
                                 @test isapprox(Ylmθ′ϕ′, Ylθϕrot_m, atol = 1e-13, rtol = 1e-8)
+                                # (M⁻¹ x)⋅Ylm′(n′) = (M⁻¹ x)⋅M⁻¹∑Dlmm′ Ylm(n) = x⋅∑Dlmm′ Ylm(n)
                                 Ylθϕrot_m = x_n' * sum(D[m′, m] * parent(Y[(l, m′)]) for m′ in -l:l)
                                 Ylmθ′ϕ′ = x_n′' * parent(vshbasis(YT, B, l, m, θ′, ϕ′, S′))
+                                @test isapprox(Ylmθ′ϕ′, Ylθϕrot_m, atol = 1e-13, rtol = 1e-8)
+                                # x.Ylm′(n′) = x.M⁻¹∑Dlmm′ Ylm(n) = (Mx)⋅∑Dlmm′ Ylm(n)
+                                Ylθϕrot_m = (M*x_n)' * sum(D[m′, m] * parent(Y[(l, m′)]) for m′ in -l:l)
+                                Ylmθ′ϕ′ = x_n' * parent(vshbasis(YT, B, l, m, θ′, ϕ′, S′))
                                 @test isapprox(Ylmθ′ϕ′, Ylθϕrot_m, atol = 1e-13, rtol = 1e-8)
                             end
                         end
